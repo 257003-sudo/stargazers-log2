@@ -62,3 +62,4 @@ else:
             print(f"おつり  : {change}円")
             print("ありがとうございました！")
             break
+ vvvvvvv
