@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>リバーシ
-    </title>
+    <title>アルティメット・スキル・オセロ NEO</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+JP:wght@400;700&family=Press+Start+2P&display=swap');
-
+ 
         /* Theme Styles */
         body.theme-cyber {
             background-color: #0d1117;
@@ -31,29 +30,26 @@
             font-family: 'Press Start 2P', 'Noto Sans JP', monospace;
         }
         body.theme-yajuu {
-            background-image:url(images/yajuu.jpg)
+            background-image:url(images/inmu-univarcity.jpg)
         
  
         }
-        body.thime-yaju {
-            background-image: url(images/yajuu.jpg);
-        }
-
+ 
         .font-orbitron {
             font-family: 'Orbitron', sans-serif;
         }
-
+ 
         /* 3D Board & Disc Flipping FX */
         .disc {
             transition: transform 0.4s ease-in-out, background-color 0.3s;
             transform-style: preserve-3d;
             pointer-events: none;
         }
-
+ 
         .disc.flip {
             transform: rotateY(180deg);
         }
-
+ 
         /* 駒がひっくり返る演出 */
         .disc-flipper {
             transform-style: preserve-3d;
@@ -64,7 +60,7 @@
             50%  { transform: perspective(500px) rotateY(90deg)  scale(1.3);  }
             100% { transform: perspective(500px) rotateY(180deg) scale(1);    }
         }
-
+ 
         /* Cyber Theme Discs */
         .theme-cyber .disc-black {
             background: radial-gradient(circle at 30% 30%, #3a3d40, #0d0e10);
@@ -76,7 +72,7 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6), inset 0 0 8px rgba(255, 0, 85, 0.3);
             border: 2px solid #ff0055;
         }
-
+ 
         /* Japanese Theme Discs */
         .theme-japanese .disc-black {
             background: radial-gradient(circle at 30% 30%, #2b2b2b, #050505);
@@ -88,7 +84,7 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6), inset 0 0 8px rgba(178, 34, 34, 0.5);
             border: 2px solid #b22222;
         }
-
+ 
         /* Space Theme Discs */
         .theme-space .disc-black {
             background: radial-gradient(circle at 30% 30%, #2e1065, #090314);
@@ -113,7 +109,7 @@
             background-color: rgba(30, 58, 138, 0.4) !important; /* blue-900 */
             border-color: rgba(59, 130, 246, 0.5) !important; /* blue-500 */
         }
-
+ 
         /* Retro Theme Discs */
         .theme-retro .disc-black {
             background: #000000;
@@ -150,7 +146,7 @@
             background: none !important;
             -webkit-text-fill-color: #33ff33 !important;
         }
-
+ 
         /* Yajuu Theme Discs */
         .theme-yajuu .disc-black {
             background: radial-gradient(circle at 30% 30%, #0e4a6b, #021520);
@@ -178,18 +174,18 @@
             background-position: center;
             border-color: rgba(45, 212, 191, 0.5) !important;
         }
-
+ 
         /* マスは半透明にして、写真を透かしつつ駒を見やすくする */
         .theme-yajuu #board > div:not(.cell-highlight):not(.cell-poison-target):not(.cell-warp-source):not(.cell-warp-target):not(.cell-skill-target):not(.cell-vanish-target):not(.bg-gray-950) {
             background-image: url(images/yaju.jpg);
             border-color: rgba(255, 255, 255, 0.3);
         }
-
+ 
         .disc-shield {
             border: 3px solid #ffd700 !important;
             box-shadow: 0 0 14px #ffd700, inset 0 0 10px #ffd700 !important;
         }
-
+ 
         .cell-highlight {
             background-color: rgba(0, 243, 255, 0.2);
             box-shadow: inset 0 0 8px rgba(0, 243, 255, 0.6);
@@ -198,73 +194,73 @@
         .cell-highlight:hover {
             background-color: rgba(0, 243, 255, 0.4);
         }
-
+ 
         .cell-poison-target {
             background-color: rgba(34, 197, 94, 0.3);
             box-shadow: inset 0 0 10px rgba(34, 197, 94, 0.8);
             cursor: pointer;
             animation: pulse-green 1s infinite alternate;
         }
-
+ 
         .cell-warp-source {
             background-color: rgba(234, 179, 8, 0.35);
             box-shadow: inset 0 0 12px rgba(234, 179, 8, 0.9);
             cursor: pointer;
             animation: pulse-yellow 1s infinite alternate;
         }
-
+ 
         .cell-warp-target {
             background-color: rgba(239, 68, 68, 0.35);
             box-shadow: inset 0 0 12px rgba(239, 68, 68, 0.9);
             cursor: pointer;
             animation: pulse-red 1s infinite alternate;
         }
-
+ 
         .cell-skill-target {
             background-color: rgba(255, 0, 85, 0.25);
             box-shadow: inset 0 0 10px rgba(255, 0, 85, 0.8);
             cursor: pointer;
             animation: pulse-red 1s infinite alternate;
         }
-
+ 
         .cell-vanish-target {
             background-color: rgba(168, 85, 247, 0.3);
             box-shadow: inset 0 0 12px rgba(168, 85, 247, 0.9);
             cursor: pointer;
             animation: pulse-purple 1s infinite alternate;
         }
-
+ 
         @keyframes pulse-purple { from { opacity: 0.6; } to { opacity: 1; } }
         @keyframes pulse-red { from { opacity: 0.6; } to { opacity: 1; } }
         @keyframes pulse-green { from { opacity: 0.6; } to { opacity: 1; } }
         @keyframes pulse-yellow { from { opacity: 0.6; } to { opacity: 1; } }
-
+ 
         @keyframes cutin-banner {
             0% { transform: scale(0.2) rotate(-5deg); opacity: 0; }
             50% { transform: scale(1.1) rotate(2deg); opacity: 1; }
             70% { transform: scale(1.0) rotate(0deg); opacity: 1; }
             100% { transform: scale(1.3) rotate(5deg); opacity: 0; }
         }
-
+ 
         @keyframes flash-bg {
             0% { opacity: 0; }
             30% { opacity: 0.85; }
             100% { opacity: 0; }
         }
-
+ 
         /* Base Glass Panel */
         .glass-panel {
             background: rgba(22, 27, 34, 0.85);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.12);
         }
-
+ 
         /* Theme: Cyber UI (Default) */
         .theme-cyber .glass-panel {
              border-color: rgba(0, 243, 255, 0.2);
              box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
         }
-
+ 
         /* Theme: Japanese UI */
         .theme-japanese .glass-panel {
             background: rgba(30, 20, 20, 0.85);
@@ -281,15 +277,15 @@
             background-color: rgba(60, 20, 20, 0.6) !important;
             border-color: rgba(212, 175, 55, 0.4) !important;
         }
-
+ 
         .animate-cutin {
             animation: cutin-banner 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
-
+ 
         .animate-flash {
             animation: flash-bg 0.9s ease-out forwards;
         }
-
+ 
         .speed-lines {
             background: repeating-conic-gradient(
                 from 0deg,
@@ -297,7 +293,7 @@
                 transparent 5deg 10deg
             );
         }
-
+ 
         /* INMUPOWER 演出 */
         @keyframes inmu-zoom {
             0%   { transform: scale(0.1) rotate(-12deg); opacity: 0; }
@@ -328,7 +324,7 @@
             -webkit-text-stroke: 2px #fff;
             animation: inmu-gradient 0.8s linear infinite;
         }
-
+ 
         #particleCanvas {
             position: fixed;
             top: 0;
@@ -338,7 +334,7 @@
             pointer-events: none;
             z-index: 50;
         }
-
+ 
         /* Custom Scrollbar for Modal */
         .custom-scrollbar::-webkit-scrollbar {
             width: 8px;
@@ -359,10 +355,10 @@
 <body class="theme-cyber min-h-screen flex flex-col justify-between items-center p-2 sm:p-4">
     <!-- Particle Canvas for explosions and effects -->
     <canvas id="particleCanvas"></canvas>
-
+ 
     <!-- INMUPOWER Overlay -->
     <div id="inmuOverlay" class="fixed inset-0 pointer-events-none z-[49] hidden items-center justify-center overflow-hidden"></div>
-
+ 
     <!-- Header & Controls -->
     <header class="w-full max-w-6xl flex flex-wrap justify-between items-center mb-3 px-2 gap-2">
         <div class="flex items-center space-x-3">
@@ -373,7 +369,7 @@
                 </h1>
             </div>
         </div>
-
+ 
         <div class="flex flex-wrap items-center gap-2">
             <!-- Stage / Board Select -->
             <select id="stageSelect" onchange="changeStage()" class="bg-gray-800 text-xs sm:text-sm text-yellow-300 border border-yellow-500/40 rounded-lg px-2 sm:px-3 py-1.5 focus:outline-none">
@@ -383,7 +379,7 @@
                 <option value="charge">⚡ ステージ: チャージゾーン</option>
                 <option value="yajuu">👹 ステージ: 野獣帝</option>
             </select>
-
+ 
             <!-- Theme / Skin Select -->
             <select id="themeSelect" onchange="changeTheme()" class="bg-gray-800 text-xs sm:text-sm text-emerald-300 border border-emerald-500/40 rounded-lg px-2 sm:px-3 py-1.5 focus:outline-none">
                 <option value="cyber" selected>🎨 スキン: サイバーパンク</option>
@@ -391,37 +387,38 @@
                 <option value="space">🚀 スキン: コズミック</option>
                 <option value="retro">👾 スキン: 8Bitレトロ</option>
                 <option value="yajuu">👹 スキン: 野獣帝</option>
-                <option value="yajuu">👉 スキン: 多様性の世界</option>
-
-                
             </select>
-
+ 
             <!-- Game Mode Select -->
             <select id="gameModeSelect" onchange="changeGameMode()" class="bg-gray-800 text-xs sm:text-sm text-cyan-300 border border-cyan-500/40 rounded-lg px-2 sm:px-3 py-1.5 focus:outline-none">
                 <option value="vsCpu" selected>1P vs CPU</option>
                 <option value="vs2p">2P 対戦</option>
             </select>
-
+ 
             <!-- AI Difficulty Select -->
             <select id="aiLevelSelect" onchange="resetGame()" class="bg-gray-800 text-xs sm:text-sm text-pink-300 border border-pink-500/40 rounded-lg px-2 sm:px-3 py-1.5 focus:outline-none">
                 <option value="easy">難易度: 初級</option>
                 <option value="medium" selected>難易度: 中級</option>
                 <option value="hard">難易度: 上級</option>
+                <option value="sei">難易度: 聖級</option>
+                <option value="ou">難易度: 王級</option>
+                <option value="tei">難易度: 帝級</option>
+                <option value="shin">難易度: 神級</option>
             </select>
-
+ 
             <button id="testModeBtn" onclick="toggleTestMode()" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-bold py-1.5 px-3 rounded-lg shadow-lg transition active:scale-95">
                 <i class="fa-solid fa-flask mr-1"></i><span id="testBtnText">テストモード</span>
             </button>
-
+ 
             <button onclick="resetGame()" class="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white text-xs sm:text-sm font-bold py-1.5 px-3 rounded-lg shadow-lg transition active:scale-95">
                 <i class="fa-solid fa-rotate-right mr-1"></i>リセット
             </button>
         </div>
     </header>
-
+ 
     <!-- Main Content Layout -->
     <main class="w-full max-w-6xl flex flex-col lg:flex-row items-center lg:items-start justify-center gap-4 relative">
-
+ 
         <!-- Skill Cutin Overlay -->
         <div id="skillCutinOverlay" class="fixed inset-0 pointer-events-none z-50 hidden flex-col items-center justify-center overflow-hidden">
             <div id="cutinBg" class="absolute inset-0 speed-lines bg-gradient-to-r from-purple-900/90 via-black/95 to-red-900/90 animate-flash"></div>
@@ -437,7 +434,7 @@
                 </div>
             </div>
         </div>
-
+ 
         <!-- Left Column / Player Cards & Status & Rule Button -->
         <div class="w-full lg:w-64 flex flex-col gap-3 shrink-0">
             <div class="flex flex-row lg:flex-col justify-between gap-3 w-full">
@@ -456,7 +453,7 @@
                         TURN
                     </div>
                 </div>
-
+ 
                 <!-- CPU / P2 Card -->
                 <div id="cpuCard" class="glass-panel rounded-xl p-3 sm:p-4 flex-1 flex items-center justify-between border-l-4 border-gray-600 opacity-60 transition-all">
                     <div class="flex items-center space-x-3">
@@ -473,30 +470,30 @@
                     </div>
                 </div>
             </div>
-
+ 
             <!-- Rule Modal Trigger Button (NEW) -->
             <button onclick="openRuleModal()" class="glass-panel w-full p-3 rounded-xl border border-cyan-500/50 hover:bg-cyan-900/50 transition-all flex items-center justify-center gap-2 text-cyan-300 font-bold text-sm shadow-[0_0_10px_rgba(0,243,255,0.1)] hover:shadow-[0_0_15px_rgba(0,243,255,0.3)] active:scale-95 cursor-pointer">
                 <i class="fa-solid fa-book"></i> システム＆スキル解説
             </button>
         </div>
-
+ 
         <!-- Center Game Board -->
         <div class="w-full max-w-[480px] glass-panel p-2 sm:p-4 rounded-2xl shadow-2xl border border-cyan-500/20 flex flex-col items-center">
             <div id="board" class="grid grid-cols-8 gap-1 p-1.5 sm:p-2 rounded-xl border-2 shadow-inner w-full aspect-square bg-emerald-950/80 border-emerald-800">
                 <!-- Dynamic 64 cells -->
             </div>
-
+ 
             <div id="statusMessage" class="mt-3 text-center text-xs sm:text-sm font-bold text-cyan-300 min-h-[32px] flex items-center justify-center px-2 theme-text">
                 あなたのターンです
             </div>
         </div>
-
+ 
         <!-- Right Side / Abilities Panel -->
         <div class="w-full lg:w-80 glass-panel rounded-xl p-3 sm:p-4 shrink-0">
             <h2 class="text-sm font-bold font-orbitron text-cyan-400 mb-2 flex items-center justify-between theme-text">
                 <span><i class="fa-solid fa-wand-magic-sparkles mr-2"></i><span id="skillOwnerTitle">特殊能力 (PLAYER 1)</span></span>
             </h2>
-
+ 
             <!-- Charge Gauge -->
             <div class="mb-3 p-2.5 bg-gray-900/90 rounded-lg border border-cyan-500/30">
                 <div class="flex justify-between items-center text-[11px] mb-1 font-bold">
@@ -513,7 +510,7 @@
                     相手に自分の駒を裏返された時に蓄積！15ptでスキルGET（不利時/スキル被弾時は倍率UP）
                 </div>
             </div>
-
+ 
             <!-- Skill List Grid -->
             <div class="grid grid-cols-2 lg:grid-cols-1 gap-2">
                 <button id="btnBomb" onclick="selectSkill('bomb')" class="skill-btn relative flex items-center p-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-cyan-500/30 text-left transition disabled:opacity-40 disabled:pointer-events-none">
@@ -526,7 +523,7 @@
                     </div>
                     <span id="cntBomb" class="ml-1 text-xs font-bold bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-800">0</span>
                 </button>
-
+ 
                 <button id="btnShield" onclick="selectSkill('shield')" class="skill-btn relative flex items-center p-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-cyan-500/30 text-left transition disabled:opacity-40 disabled:pointer-events-none">
                     <div class="w-7 h-7 rounded bg-amber-900/60 text-amber-400 flex items-center justify-center mr-2 text-xs shrink-0 border border-amber-500/40">
                         <i class="fa-solid fa-shield-halved"></i>
@@ -537,7 +534,7 @@
                     </div>
                     <span id="cntShield" class="ml-1 text-xs font-bold bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-800">0</span>
                 </button>
-
+ 
                 <button id="btnPoison" onclick="selectSkill('poison')" class="skill-btn relative flex items-center p-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-cyan-500/30 text-left transition disabled:opacity-40 disabled:pointer-events-none">
                     <div class="w-7 h-7 rounded bg-emerald-900/60 text-emerald-400 flex items-center justify-center mr-2 text-xs shrink-0 border border-emerald-500/40">
                         <i class="fa-solid fa-flask"></i>
@@ -548,7 +545,7 @@
                     </div>
                     <span id="cntPoison" class="ml-1 text-xs font-bold bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-800">0</span>
                 </button>
-
+ 
                 <button id="btnWarp" onclick="selectSkill('warp')" class="skill-btn relative flex items-center p-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-cyan-500/30 text-left transition disabled:opacity-40 disabled:pointer-events-none">
                     <div class="w-7 h-7 rounded bg-yellow-900/60 text-yellow-400 flex items-center justify-center mr-2 text-xs shrink-0 border border-yellow-500/40">
                         <i class="fa-solid fa-right-left"></i>
@@ -559,7 +556,7 @@
                     </div>
                     <span id="cntWarp" class="ml-1 text-xs font-bold bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-800">0</span>
                 </button>
-
+ 
                 <button id="btnSteal" onclick="selectSkill('steal')" class="skill-btn relative flex items-center p-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-cyan-500/30 text-left transition disabled:opacity-40 disabled:pointer-events-none">
                     <div class="w-7 h-7 rounded bg-purple-900/60 text-purple-400 flex items-center justify-center mr-2 text-xs shrink-0 border border-purple-500/40">
                         <i class="fa-solid fa-hand-sparkles"></i>
@@ -570,7 +567,7 @@
                     </div>
                     <span id="cntSteal" class="ml-1 text-xs font-bold bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-800">0</span>
                 </button>
-
+ 
                 <button id="btnVanish" onclick="selectSkill('vanish')" class="skill-btn relative flex items-center p-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-cyan-500/30 text-left transition disabled:opacity-40 disabled:pointer-events-none">
                     <div class="w-7 h-7 rounded bg-indigo-900/60 text-indigo-400 flex items-center justify-center mr-2 text-xs shrink-0 border border-indigo-500/40">
                         <i class="fa-solid fa-ghost"></i>
@@ -581,7 +578,7 @@
                     </div>
                     <span id="cntVanish" class="ml-1 text-xs font-bold bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-800">0</span>
                 </button>
-
+ 
                 <button id="btnInmu" onclick="selectSkill('inmu')" class="skill-btn relative hidden items-center p-2 rounded-lg bg-gradient-to-r from-red-900/70 to-yellow-900/70 hover:from-red-800 hover:to-yellow-800 border border-yellow-400/60 text-left transition disabled:opacity-40 disabled:pointer-events-none col-span-2 lg:col-span-1">
                     <div class="w-7 h-7 rounded bg-yellow-900/60 text-yellow-300 flex items-center justify-center mr-2 text-xs shrink-0 border border-yellow-400/60">
                         <i class="fa-solid fa-crown"></i>
@@ -593,13 +590,13 @@
                     <span id="cntInmu" class="ml-1 text-xs font-bold bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-800">0</span>
                 </button>
             </div>
-
+ 
             <div id="skillDesc" class="mt-3 p-2 bg-gray-900/70 rounded-lg text-[11px] text-gray-300 border border-gray-700 min-h-[42px] flex items-center">
                 スキルを選択して強力な効果を発動！
             </div>
         </div>
     </main>
-
+ 
     <!-- Game End Modal -->
     <div id="gameModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden z-50 flex items-center justify-center p-4">
         <div class="glass-panel rounded-2xl p-6 max-w-sm w-full text-center border-2 border-cyan-500/40 shadow-[0_0_30px_rgba(0,243,255,0.3)] transform transition-all scale-100">
@@ -614,7 +611,7 @@
             </button>
         </div>
     </div>
-
+ 
     <!-- Test Mode Password Modal -->
     <div id="testModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden z-50 flex items-center justify-center p-4">
         <div class="glass-panel rounded-2xl p-6 max-w-sm w-full text-center border-2 border-purple-500/40 shadow-2xl">
@@ -631,7 +628,7 @@
             </div>
         </div>
     </div>
-
+ 
     <!-- Rule / Skill Explanation Modal (NEW) -->
     <div id="ruleModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden z-50 flex items-center justify-center p-4">
         <div class="glass-panel rounded-2xl p-5 sm:p-6 max-w-2xl w-full max-h-[85vh] overflow-y-auto custom-scrollbar border-2 border-cyan-500/40 shadow-[0_0_20px_rgba(0,243,255,0.2)] relative">
@@ -666,7 +663,7 @@
                         </li>
                     </ul>
                 </section>
-
+ 
                 <!-- スキル説明 -->
                 <section>
                     <h3 class="text-base sm:text-lg font-bold text-pink-400 mb-3 flex items-center gap-2">
@@ -684,7 +681,7 @@
                                 <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">戦術活用</span>相手の駒が過密している中盤〜終盤に使用することで、一気に大逆転を狙える強力な範囲攻撃スキルです。</p>
                             </div>
                         </div>
-
+ 
                         <!-- 2. シールド -->
                         <div class="bg-gray-900/60 p-3 sm:p-4 rounded-lg border border-amber-900/30 border-l-4 border-l-amber-500">
                             <h4 class="font-bold text-amber-400 text-sm sm:text-base mb-1.5">🛡️ 2. シールド（Shield Guard）</h4>
@@ -694,7 +691,7 @@
                                 <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">戦術活用</span>盤面の「四隅（角）」や絶対に取られたくない要所に配置することで、永遠に自分の陣地を保持できます。</p>
                             </div>
                         </div>
-
+ 
                         <!-- 3. 毒盤 -->
                         <div class="bg-gray-900/60 p-3 sm:p-4 rounded-lg border border-emerald-900/30 border-l-4 border-l-emerald-500">
                             <h4 class="font-bold text-emerald-400 text-sm sm:text-base mb-1.5">🧪 3. 毒盤（Poison Trap）</h4>
@@ -705,7 +702,7 @@
                                 <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">戦術活用</span>相手がどうしても裏返したいであろう重要な駒や、ラインの核となる駒に仕掛けておくことで、相手の行動を強く牽制・妨害できます。</p>
                             </div>
                         </div>
-
+ 
                         <!-- 4. ワープ -->
                         <div class="bg-gray-900/60 p-3 sm:p-4 rounded-lg border border-yellow-900/30 border-l-4 border-l-yellow-500">
                             <h4 class="font-bold text-yellow-400 text-sm sm:text-base mb-1.5">🌀 4. ワープ（Space Warp）</h4>
@@ -716,7 +713,7 @@
                                 <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">戦術活用</span>相手の陣形を崩しつつ、自分の駒を安全なポジションへ退避させるトリッキーなスキルです。</p>
                             </div>
                         </div>
-
+ 
                         <!-- 5. 強奪変換 -->
                         <div class="bg-gray-900/60 p-3 sm:p-4 rounded-lg border border-purple-900/30 border-l-4 border-l-purple-500">
                             <h4 class="font-bold text-purple-400 text-sm sm:text-base mb-1.5">🔄 5. 強奪変換（Steal Convert）</h4>
@@ -727,7 +724,7 @@
                                 <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">戦術活用</span>相手の連鎖やラインの核となっている重要な駒をダイレクトに奪い取り、敵の戦術を根本から崩壊させられます。</p>
                             </div>
                         </div>
-
+ 
                         <!-- 6. 消滅 -->
                         <div class="bg-gray-900/60 p-3 sm:p-4 rounded-lg border border-indigo-900/30 border-l-4 border-l-indigo-500">
                             <h4 class="font-bold text-indigo-400 text-sm sm:text-base mb-1.5">👻 6. 消滅（Vanish）</h4>
@@ -737,7 +734,7 @@
                                 <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">戦術活用</span>打てる手がなくなった時の盤面調整のほか、相手に角を取らせる原因になっている自分の駒をあえて消去してラインを断ち切るなど、高度な防衛・立ち回りに使用できます。</p>
                             </div>
                         </div>
-
+ 
                         <!-- 7. INMUPOWER -->
                         <div class="bg-gray-900/60 p-3 sm:p-4 rounded-lg border border-yellow-900/30 border-l-4 border-l-yellow-400">
                             <h4 class="font-bold text-yellow-300 text-sm sm:text-base mb-1.5">👹 7. INMUPOWER（特殊スキル）</h4>
@@ -760,28 +757,28 @@
             </div>
         </div>
     </div>
-
+ 
     <!-- Footer -->
     <footer class="mt-4 text-center text-xs text-gray-500">
         NEO REVERSI 2.0 &copy; 2026 - Powered by Gemini
     </footer>
-
+ 
     <script>
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         let audioCtx = null;
         const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
+ 
         let particles = [];
         let gameMode = 'vsCpu'; // 'vsCpu' or 'vs2p'
         let currentStage = 'standard';
         let isTestMode = false;
-
+ 
         const EMPTY = 0;
         const BLACK = 1; // P1
         const WHITE = 2; // CPU / P2
         const OBSTACLE = -1; // Blackhole / Barrier
         const BONUS_CHARGE = -2; // Bonus Charge Cell
-
+ 
         let board = Array(8).fill(null).map(() => Array(8).fill(EMPTY));
         let shields = Array(8).fill(null).map(() => Array(8).fill(false));
         let poisonTrap = Array(8).fill(null).map(() => Array(8).fill(false));
@@ -797,31 +794,31 @@
         }
         let inmuQueued = null;   // INMUPOWER発動済み(次の相手手番で支配が始まる)。値は発動者の色
         let inmuControl = null;  // 今の手番を支配している人の色(null=支配なし)
-
+ 
         let turn = BLACK;
         let isProcessing = false;
         let activeSkill = null;
         let warpSourceCell = null; // for Warp skill
-
+ 
         let p1Paralyzed = false;
         let p2Paralyzed = false;
-
+ 
         let playerFlipCount = 0;
         let cpuFlipCount = 0;
-
+ 
         // 初期スキルストック数
         let playerSkills = { bomb: 0, shield: 0, poison: 0, warp: 0, steal: 0, vanish: 0 };
         let cpuSkills = { bomb: 0, shield: 0, poison: 0, warp: 0, steal: 0, vanish: 0 };
-
+ 
         let ctx = null;
-
+ 
         function resizeParticleCanvas() {
             const canvas = document.getElementById('particleCanvas');
             if (!canvas) return;
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
         }
-
+ 
         function initParticleCanvas() {
             const canvas = document.getElementById('particleCanvas');
             if (!canvas) return;
@@ -830,7 +827,7 @@
             ctx = canvas.getContext('2d');
             requestAnimationFrame(updateParticles);
         }
-
+ 
         function createExplosion(x, y, color, count = 30) {
             for (let i = 0; i < count; i++) {
                 const angle = Math.random() * Math.PI * 2;
@@ -848,7 +845,7 @@
                 });
             }
         }
-
+ 
         function createConfetti() {
             const colors = ['#facc15', '#f87171', '#60a5fa', '#34d399', '#a78bfa', '#ff0055', '#00f3ff'];
             for (let i = 0; i < 200; i++) {
@@ -867,7 +864,7 @@
                 });
             }
         }
-
+ 
         function updateParticles() {
             if (ctx) {
                 ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -880,7 +877,7 @@
                         p.y += p.vy;
                         p.rotation += p.rotationSpeed;
                         p.alpha -= p.decay;
-
+ 
                         if (p.y > ctx.canvas.height || p.alpha <= 0) {
                             particles.splice(i, 1);
                         } else {
@@ -896,7 +893,7 @@
                         p.x += p.vx;
                         p.y += p.vy;
                         p.alpha -= p.decay;
-
+ 
                         if (p.alpha <= 0) {
                             particles.splice(i, 1);
                         } else {
@@ -913,26 +910,26 @@
             }
             requestAnimationFrame(updateParticles);
         }
-
+ 
         function isValidPos(r, c) {
             return r >= 0 && r < 8 && c >= 0 && c < 8;
         }
-
+ 
         function isCorner(r, c) {
             return (r === 0 || r === 7) && (c === 0 || c === 7);
         }
-
+ 
         function isEdgeButNotCorner(r, c) {
             const isEdge = (r === 0 || r === 7 || c === 0 || c === 7);
             return isEdge && !isCorner(r, c);
         }
-
+ 
         function getFlippableInDirection(r, c, dr, dc, player) {
             const opponent = player === BLACK ? WHITE : BLACK;
             let nr = r + dr;
             let nc = c + dc;
             const flippable = [];
-
+ 
             while (isValidPos(nr, nc) && board[nr][nc] === opponent) {
                 if (!shields[nr][nc]) {
                     flippable.push({ r: nr, c: nc });
@@ -942,17 +939,17 @@
                 nr += dr;
                 nc += dc;
             }
-
+ 
             if (isValidPos(nr, nc) && board[nr][nc] === player && flippable.length > 0) {
                 return flippable;
             }
             return [];
         }
-
+ 
         function getFlippableDiscs(r, c, player) {
             if (!isValidPos(r, c)) return [];
             if (board[r][c] !== EMPTY && board[r][c] !== BONUS_CHARGE) return [];
-
+ 
             const directions = [
                 [-1, -1], [-1, 0], [-1, 1],
                 [0, -1],           [0, 1],
@@ -966,7 +963,7 @@
             }
             return totalFlippable;
         }
-
+ 
         function getValidMoves(player) {
             const moves = [];
             for (let r = 0; r < 8; r++) {
@@ -981,12 +978,12 @@
             }
             return moves;
         }
-
+ 
         function setMessage(msg) {
             const el = document.getElementById('statusMessage');
             if (el) el.innerText = msg;
         }
-
+ 
         function hasStealTarget(player) {
             const opponent = player === BLACK ? WHITE : BLACK;
             for (let r = 0; r < 8; r++) {
@@ -998,7 +995,7 @@
             }
             return false;
         }
-
+ 
         function hasVanishTarget(player) {
             for (let r = 0; r < 8; r++) {
                 for (let c = 0; c < 8; c++) {
@@ -1007,7 +1004,7 @@
             }
             return false;
         }
-
+ 
         function hasWarpTargets(player) {
             const opponent = player === BLACK ? WHITE : BLACK;
             for (let r1 = 0; r1 < 8; r1++) {
@@ -1026,7 +1023,7 @@
             }
             return false;
         }
-
+ 
         function hasPoisonTarget(player) {
             for (let r = 0; r < 8; r++) {
                 for (let c = 0; c < 8; c++) {
@@ -1036,20 +1033,23 @@
             }
             return false;
         }
-
+ 
         function canPlayerMove(player) {
             const validMoves = getValidMoves(player);
             if (validMoves.length > 0) return true;
-
+ 
             const skills = player === BLACK ? playerSkills : cpuSkills;
             if (skills.steal > 0 && hasStealTarget(player)) return true;
             if (skills.vanish > 0 && hasVanishTarget(player)) return true;
             if (skills.warp > 0 && hasWarpTargets(player)) return true;
-            if (skills.poison > 0 && hasPoisonTarget(player)) return true;
-
+            // 毒盤は置いたあとに駒も置く必要があり、それ自体では手にならないので含めない
+ 
             return false;
         }
-
+ 
+        // 打てる場所がないときに使えるスキル
+        const NO_MOVE_SKILLS = ['steal', 'vanish', 'warp'];
+ 
         // バランス調整: スキルランダム排出時の重み付け
         // 強力なスキルは出にくく、補助的なスキルは出やすくする
         function getRandomSkill() {
@@ -1069,21 +1069,21 @@
             }
             return 'poison'; // フォールバック
         }
-
+ 
         // バランス調整: 不利状況評価関数の細分化と強化
         // 劣勢であるほどスキルチャージ倍率を上昇させ、逆転劇を誘発する
         function getDisadvantageMultiplier(player) {
             let myCount = 0;
             let enemyCount = 0;
             const opponent = player === BLACK ? WHITE : BLACK;
-
+ 
             for (let r = 0; r < 8; r++) {
                 for (let c = 0; c < 8; c++) {
                     if (board[r][c] === player) myCount++;
                     else if (board[r][c] === opponent) enemyCount++;
                 }
             }
-
+ 
             const diff = enemyCount - myCount;
             if (diff >= 20) return 3.0; // 圧倒的不利: 3.0倍
             if (diff >= 12) return 2.5; // 大幅不利: 2.5倍
@@ -1091,23 +1091,23 @@
             if (diff >= 3)  return 1.5; // やや不利: 1.5倍
             return 1.0; // 通常
         }
-
+ 
         // スキルチャージ進行処理 (相手に裏返された分だけチャージ)
         // バランス調整: スキル攻撃被弾時は少しチャージボーナスを与える
         async function addFlipProgress(player, rawCount, applyMultiplier = true, isSkillEffect = false) {
             if (rawCount <= 0) return;
-
+ 
             let multiplier = applyMultiplier ? getDisadvantageMultiplier(player) : 1.0;
-
+ 
             // バランス調整: 相手のスキル攻撃によって駒を裏返された/奪われた場合、倍率にボーナス(+0.5)
             if (isSkillEffect && applyMultiplier) {
                 multiplier += 0.5;
             }
-
+ 
             const count = Math.round(rawCount * multiplier);
-
+ 
             if (count <= 0) return;
-
+ 
             const SKILL_NAMES = {
                 bomb: '💣 爆発配置',
                 shield: '🛡️ シールド',
@@ -1116,7 +1116,7 @@
                 steal: '🔄 強奪変換',
                 vanish: '👻 消滅'
             };
-
+ 
             if (player === BLACK) {
                 playerFlipCount += count;
                 while (playerFlipCount >= 15) {
@@ -1140,7 +1140,7 @@
             }
             updateSkillUI();
         }
-
+ 
         function updateScores() {
             let black = 0;
             let white = 0;
@@ -1155,13 +1155,13 @@
             if (scoreBlackEl) scoreBlackEl.innerText = black;
             if (scoreWhiteEl) scoreWhiteEl.innerText = white;
         }
-
+ 
         function updateTurnBadge() {
             const playerCard = document.getElementById('playerCard');
             const cpuCard = document.getElementById('cpuCard');
             const playerBadge = document.getElementById('playerStatusBadge');
             const cpuBadge = document.getElementById('cpuStatusBadge');
-
+ 
             if (turn === BLACK) {
                 if (playerCard) {
                     playerCard.classList.remove('opacity-60', 'border-gray-600');
@@ -1192,15 +1192,15 @@
                 if (playerBadge) playerBadge.classList.add('hidden');
             }
         }
-
+ 
         function initAudio() {
             if (!audioCtx) audioCtx = new AudioContext();
         }
-
+ 
         function playSound(type) {
             if (!audioCtx) return;
             const now = audioCtx.currentTime;
-
+ 
             if (type === 'place') {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
@@ -1304,35 +1304,35 @@
                 
                 osc2.frequency.setValueAtTime(300, now);
                 osc2.frequency.exponentialRampToValueAtTime(1200, now + 0.4);
-
+ 
                 gain.gain.setValueAtTime(0.4, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-
+ 
                 osc1.connect(gain);
                 osc2.connect(gain);
                 gain.connect(audioCtx.destination);
-
+ 
                 osc1.start(now);
                 osc2.start(now);
                 osc1.stop(now + 0.5);
                 osc2.stop(now + 0.5);
             }
         }
-
+ 
         async function triggerSkillCutin(skillType, player = BLACK) {
             if (skillType === 'inmu') return showInmuCutin(player);
-
+ 
             const overlay = document.getElementById('skillCutinOverlay');
             const subText = document.getElementById('cutinSubText');
             const mainText = document.getElementById('cutinMainText');
             const quoteText = document.getElementById('cutinMemeQuote');
             if (!overlay || !subText || !mainText || !quoteText) return;
-
+ 
             let userPrefix = '⚡ P1 SPECIAL SKILL';
             if (player === WHITE) {
                 userPrefix = gameMode === 'vs2p' ? '⚡ P2 SPECIAL SKILL' : '🤖 CPU SPECIAL SKILL';
             }
-
+ 
             const skillData = {
                 bomb: { main: 'BOMB STRIKE!!', sub: `${userPrefix}: BOMB STRIKE`, quote: '「爆発配置！周囲3x3を爆破せよ！」' },
                 shield: { main: 'SHIELD GUARD!!', sub: `${userPrefix}: SHIELD DISC`, quote: '「鉄壁シールド展開！絶対無敵！」' },
@@ -1341,35 +1341,35 @@
                 vanish: { main: 'VANISH!!', sub: `${userPrefix}: DISC VANISH`, quote: '「我が駒を消滅させる！虚無の彼方へ！」' },
                 steal: { main: 'STEAL CONVERT!!', sub: `${userPrefix}: DISC STEAL`, quote: '「強奪変換！相手の駒を奪い取れ！」' }
             };
-
+ 
             const data = String(skillType).startsWith('box:')
                 ? { main: skillType.slice(4), sub: '❓ MYSTERY BOX', quote: '「はてなボックスが発動！」' }
                 : (skillData[skillType] || { main: 'SKILL ACTIVATED!', sub: userPrefix, quote: '「スキル発動！」' });
-
+ 
             subText.innerText = data.sub;
             mainText.innerText = data.main;
             quoteText.innerText = data.quote;
-
+ 
             playSound('cutin');
             overlay.classList.remove('hidden');
             overlay.classList.add('flex');
-
+ 
             await sleep(900);
-
+ 
             overlay.classList.add('hidden');
             overlay.classList.remove('flex');
         }
-
+ 
         // ===== 野獣帝ステージ用 =====
         const BOX_SKILL_KEYS = ['bomb', 'shield', 'poison', 'warp', 'steal', 'vanish'];
         const BOX_SKILL_LABELS = { bomb: '💣爆発配置', shield: '🛡️シールド', poison: '🧪毒盤', warp: '🌀ワープ', steal: '🔄強奪変換', vanish: '👻消滅' };
-
+ 
         // 今、人間が操作できる状態か(INMUPOWER中は支配している側が操作する)
         function isHumanTurnNow() {
             if (inmuControl !== null) return inmuControl === BLACK || gameMode === 'vs2p';
             return (turn === BLACK) || (turn === WHITE && gameMode === 'vs2p');
         }
-
+ 
         function pickRandom(arr, n) {
             const a = arr.slice();
             for (let i = a.length - 1; i > 0; i--) {
@@ -1378,14 +1378,14 @@
             }
             return a.slice(0, n);
         }
-
+ 
         async function triggerMysteryBox(r, c, player) {
             mysteryBox[r][c] = false;
             const opponent = player === BLACK ? WHITE : BLACK;
             const skills = player === BLACK ? playerSkills : cpuSkills;
             const who = player === BLACK ? 'P1' : (gameMode === 'vs2p' ? 'P2' : 'CPU');
             const effect = Math.floor(Math.random() * 6);
-
+ 
             if (effect === 0) {
                 await triggerSkillCutin('box:スキル2個GET！', player);
                 const got = [];
@@ -1436,7 +1436,7 @@
             updateSkillUI();
             await sleep(700);
         }
-
+ 
         // INMUPOWER 専用の派手な演出
         async function showInmuCutin(player) {
             const ov = document.getElementById('inmuOverlay');
@@ -1463,16 +1463,17 @@
             ov.classList.remove('flex');
             ov.innerHTML = '';
         }
-
+ 
         // CPUがINMUPOWERでプレイヤー(黒)の手を操る: プレイヤーに一番不利な手を選ぶ
         async function runCpuControlledTurn() {
             activeSkill = null;
             const moves = getValidMoves(turn);
             if (moves.length === 0) { isProcessing = false; return; }
+            const aiInfo = getAiBoardInfo();
             const goodness = m => {
                 let s = m.flipped.length;
-                if (isCorner(m.r, m.c)) s += 50;                                   // 角は取らせない
-                if ((m.r === 1 || m.r === 6) && (m.c === 1 || m.c === 6)) s -= 20; // X打ちは大歓迎
+                if (aiInfo.corners.has(m.r + ',' + m.c)) s += 50;   // 角は取らせない
+                if (aiInfo.xsq.has(m.r + ',' + m.c)) s -= 20;       // X打ちは大歓迎
                 return s;
             };
             moves.sort((a, b) => goodness(a) - goodness(b));
@@ -1482,7 +1483,7 @@
             isProcessing = false;
             await handleCellClick(m.r, m.c, null);
         }
-
+ 
         function initGame() {
             prevBoardSnap = null;
             flipEndTime = 0;
@@ -1493,24 +1494,24 @@
             mysteryBox = Array(8).fill(null).map(() => Array(8).fill(false));
             inmuQueued = null;
             inmuControl = null;
-
+ 
             turn = BLACK;
             isProcessing = false;
             activeSkill = null;
             warpSourceCell = null;
-
+ 
             p1Paralyzed = false;
             p2Paralyzed = false;
-
+ 
             playerFlipCount = 0;
             cpuFlipCount = 0;
-
+ 
             playerSkills = { bomb: 0, shield: 0, poison: 0, warp: 0, steal: 0, vanish: 0 };
             cpuSkills = { bomb: 0, shield: 0, poison: 0, warp: 0, steal: 0, vanish: 0 };
-
+ 
             const stageSelect = document.getElementById('stageSelect');
             currentStage = stageSelect ? stageSelect.value : 'standard';
-
+ 
             if (currentStage === 'blackhole') {
                 board[2][2] = OBSTACLE;
                 board[2][5] = OBSTACLE;
@@ -1540,12 +1541,12 @@
     }
     pickRandom(cands, 4).forEach(p => { mysteryBox[p.r][p.c] = true; });
 }
-
+ 
             board[3][3] = WHITE;
             board[3][4] = BLACK;
             board[4][3] = BLACK;
             board[4][4] = WHITE;
-
+ 
             const cpuLabel = document.getElementById('cpuLabel');
             const cpuAvatar = document.getElementById('cpuAvatar');
             if (gameMode === 'vs2p') {
@@ -1555,23 +1556,23 @@
                 if (cpuLabel) cpuLabel.innerText = "CPU (白)";
                 if (cpuAvatar) cpuAvatar.innerText = "CPU";
             }
-
+ 
             updateSkillUI();
             renderBoard();
             updateScores();
             updateTurnBadge();
             setMessage(gameMode === 'vs2p' ? "2P対戦開始！ P1 (黒) の番です。" : "ゲーム開始！あなたの番です。");
         }
-
+ 
         function renderBoard() {
             const boardEl = document.getElementById('board');
             if (!boardEl) return;
             boardEl.innerHTML = '';
-
+ 
             const snap = prevBoardSnap;
             prevBoardSnap = board.map(row => row.slice());
             const nowT = performance.now();
-
+ 
             // ひっくり返った駒を集めて、置いた駒から近い順に連鎖させる
             if (snap) {
                 const isD = v => v === BLACK || v === WHITE;
@@ -1595,36 +1596,36 @@
                     });
                 }
             }
-
+ 
             const validMoves = getValidMoves(turn);
             const isHumanTurn = isHumanTurnNow();
             const opponentColor = turn === BLACK ? WHITE : BLACK;
-
+ 
             for (let r = 0; r < 8; r++) {
                 for (let c = 0; c < 8; c++) {
                     const cell = document.createElement('div');
                     cell.className = 'w-full h-full aspect-square rounded-md flex items-center justify-center relative transition-all duration-200 bg-emerald-900/40 border border-emerald-800/50';
-
+ 
                     if (board[r][c] === OBSTACLE) {
                         cell.className = 'w-full h-full aspect-square rounded-md flex items-center justify-center bg-gray-950 border border-gray-800 shadow-inner opacity-80';
                         cell.innerHTML = '<i class="fa-solid fa-ban text-gray-700 text-sm sm:text-base"></i>';
                         boardEl.appendChild(cell);
                         continue;
                     }
-
+ 
                     if (board[r][c] === BONUS_CHARGE) {
                         const icon = document.createElement('i');
                         icon.className = 'fa-solid fa-bolt text-yellow-400 text-xs sm:text-sm animate-bounce opacity-80';
                         cell.appendChild(icon);
                     }
-
+ 
                     if (mysteryBox[r][c] && (board[r][c] === EMPTY || board[r][c] === BONUS_CHARGE)) {
                         const mIcon = document.createElement('div');
                         mIcon.className = 'absolute inset-0 flex items-center justify-center text-yellow-300 font-black text-lg sm:text-2xl animate-pulse pointer-events-none';
                         mIcon.textContent = '？';
                         cell.appendChild(mIcon);
                     }
-
+ 
                     if (board[r][c] === BLACK || board[r][c] === WHITE) {
                         const disc = document.createElement('div');
                         disc.className = `w-[85%] h-[85%] rounded-full disc ${board[r][c] === BLACK ? 'disc-black' : 'disc-white'}`;
@@ -1632,7 +1633,7 @@
                             disc.classList.add('disc-shield');
                         }
                         cell.appendChild(disc);
-
+ 
                         // ひっくり返る演出(厚みのある駒を3D回転させる)
                         const fKey = r + ',' + c;
                         const fa = flipAnim[fKey];
@@ -1672,7 +1673,7 @@
                                 cell.replaceChild(flipper, disc);
                             }
                         }
-
+ 
                         // Poison visual on disc
                         if (poisonTrap[r][c]) {
                             const pIcon = document.createElement('i');
@@ -1682,7 +1683,7 @@
                             disc.style.boxShadow = `0 4px 8px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(34, 197, 94, 0.7)`;
                         }
                     }
-
+ 
                     if (isHumanTurn && !isProcessing) {
                         if (activeSkill === 'poison') {
                             if (board[r][c] === turn && !poisonTrap[r][c]) {
@@ -1730,25 +1731,29 @@
                             }
                         }
                     }
-
+ 
                     boardEl.appendChild(cell);
                 }
             }
         }
-
+ 
         function selectSkill(skillType) {
             initAudio();
             const isHumanTurn = isHumanTurnNow();
             if (!isHumanTurn || isProcessing) return;
             if (inmuControl !== null) { setMessage("INMUPOWER中はスキルを使えません。"); return; }
-
+            if (activeSkill !== skillType && !NO_MOVE_SKILLS.includes(skillType) && getValidMoves(turn).length === 0) {
+                setMessage("打てる場所がないときは、強奪変換・消滅・ワープだけ使えます。");
+                return;
+            }
+ 
             const currentSkills = turn === BLACK ? playerSkills : cpuSkills;
-
+ 
             if (!isTestMode && !(currentSkills[skillType] > 0)) {
                 setMessage("そのスキルは保有していません。");
                 return;
             }
-
+ 
             if (activeSkill === skillType) {
                 activeSkill = null;
                 warpSourceCell = null;
@@ -1771,7 +1776,7 @@
             renderBoard();
             updateSkillUI();
         }
-
+ 
         function toggleTestMode() {
             if (isTestMode) {
                 exitTestMode();
@@ -1779,7 +1784,7 @@
                 openTestModeModal();
             }
         }
-
+ 
         function exitTestMode() {
             isTestMode = false;
             activeSkill = null;
@@ -1787,19 +1792,19 @@
             
             playerSkills = { bomb: 0, shield: 0, poison: 0, warp: 0, steal: 0, vanish: 0 };
             cpuSkills = { bomb: 0, shield: 0, poison: 0, warp: 0, steal: 0, vanish: 0 };
-
+ 
             const btnText = document.getElementById('testBtnText');
             const testBtn = document.getElementById('testModeBtn');
             if (btnText) btnText.innerText = 'テストモード';
             if (testBtn) {
                 testBtn.className = "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-bold py-1.5 px-3 rounded-lg shadow-lg transition active:scale-95";
             }
-
+ 
             setMessage("🧪 テストモードを終了しました。通常モードに戻ります。");
             updateSkillUI();
             renderBoard();
         }
-
+ 
         function openTestModeModal() {
             const modal = document.getElementById('testModal');
             const input = document.getElementById('testPasswordInput');
@@ -1810,12 +1815,12 @@
                 modal.classList.remove('hidden');
             }
         }
-
+ 
         function closeTestModal() {
             const modal = document.getElementById('testModal');
             if (modal) modal.classList.add('hidden');
         }
-
+ 
         function verifyTestPassword() {
             const input = document.getElementById('testPasswordInput');
             const err = document.getElementById('testPasswordError');
@@ -1823,21 +1828,21 @@
                 isTestMode = true;
                 closeTestModal();
                 grantTestModeSkills();
-
+ 
                 const btnText = document.getElementById('testBtnText');
                 const testBtn = document.getElementById('testModeBtn');
                 if (btnText) btnText.innerText = 'テスト終了';
                 if (testBtn) {
                     testBtn.className = "bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white text-xs sm:text-sm font-bold py-1.5 px-3 rounded-lg shadow-lg transition active:scale-95";
                 }
-
+ 
                 setMessage("🧪 テストモード有効化！全スキルが無限に使用可能です！");
                 playSound('win');
             } else {
                 if (err) err.classList.remove('hidden');
             }
         }
-
+ 
         function grantTestModeSkills() {
             if (!isTestMode) return;
             const skills = ['bomb', 'shield', 'poison', 'warp', 'steal', 'vanish', 'inmu'];
@@ -1847,22 +1852,22 @@
             });
             updateSkillUI();
         }
-
+ 
         async function handleCellClick(r, c, evt) {
             initAudio();
             if (isProcessing) return;
-
+ 
             isProcessing = true;
             const currentSkill = activeSkill;
             const currentTurn = turn;
             const opponentColor = currentTurn === BLACK ? WHITE : BLACK;
             const currentSkills = currentTurn === BLACK ? playerSkills : cpuSkills;
-
+ 
             const targetEl = evt ? (evt.currentTarget || evt.target) : null;
             const rect = targetEl ? targetEl.getBoundingClientRect() : null;
             const posX = rect ? (rect.left + rect.width / 2) : (window.innerWidth / 2);
             const posY = rect ? (rect.top + rect.height / 2) : (window.innerHeight / 2);
-
+ 
             // Skill: Poison Trap Placement on Own Disc
             if (currentSkill === 'poison') {
                 if (board[r][c] === currentTurn && !poisonTrap[r][c]) {
@@ -1886,7 +1891,7 @@
                     return;
                 }
             }
-
+ 
             // Skill: Warp / Position Swap
             if (currentSkill === 'warp') {
                 if (!warpSourceCell) {
@@ -1915,14 +1920,14 @@
                         await triggerSkillCutin('warp', currentTurn);
                         if (!isTestMode) currentSkills.warp--;
                         activeSkill = null;
-
+ 
                         const sR = warpSourceCell.r;
                         const sC = warpSourceCell.c;
-
+ 
                         const tempColor = board[sR][sC];
                         board[sR][sC] = board[r][c];
                         board[r][c] = tempColor;
-
+ 
                         const tempShield = shields[sR][sC];
                         shields[sR][sC] = shields[r][c];
                         shields[r][c] = tempShield;
@@ -1931,15 +1936,15 @@
                         const tempPoison = poisonTrap[sR][sC];
                         poisonTrap[sR][sC] = poisonTrap[r][c];
                         poisonTrap[r][c] = tempPoison;
-
+ 
                         warpSourceCell = null;
                         playSound('bomb');
                         createExplosion(posX, posY, '#eab308', 35);
-
+ 
                         const directions = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
                         let totalFlippedCount = 0;
                         let triggeredPoison = false;
-
+ 
                         for (let [dr, dc] of directions) {
                             const flipped = getFlippableInDirection(r, c, dr, dc, currentTurn);
                             for (let disc of flipped) {
@@ -1952,7 +1957,7 @@
                                 playSound('flip');
                             }
                         }
-
+ 
                         renderBoard();
                         updateScores();
                         if (totalFlippedCount > 0) {
@@ -1967,7 +1972,7 @@
                             setMessage("🧪 毒トラップ発動！自分の首を絞めました。次のターン麻痺！");
                             await sleep(1000);
                         }
-
+ 
                         await sleep(600);
                         await finishTurn();
                         return;
@@ -1977,7 +1982,7 @@
                     }
                 }
             }
-
+ 
             // Skill: Vanish Disc
             if (currentSkill === 'vanish') {
                 if (board[r][c] === currentTurn) {
@@ -1989,14 +1994,14 @@
                     board[r][c] = EMPTY;
                     shields[r][c] = false;
                     poisonTrap[r][c] = false;
-
+ 
                     createExplosion(posX, posY, '#a855f7', 30);
                     isProcessing = false;
-
+ 
                     renderBoard();
                     updateScores();
                     updateSkillUI();
-
+ 
                     const validMoves = getValidMoves(currentTurn);
                     if (validMoves.length > 0) {
                         setMessage("👻 駒を消滅させました！裏返せるマスに駒を配置してください。");
@@ -2011,7 +2016,7 @@
                     return;
                 }
             }
-
+ 
             // Skill: Steal Disc
             if (currentSkill === 'steal') {
                 if (board[r][c] === opponentColor && !shields[r][c] && !isCorner(r, c)) {
@@ -2027,7 +2032,7 @@
                         triggeredPoison = true;
                         poisonTrap[r][c] = false;
                     }
-
+ 
                     const directions = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
                     for (let [dr, dc] of directions) {
                         const flipped = getFlippableInDirection(r, c, dr, dc, currentTurn);
@@ -2041,13 +2046,13 @@
                             playSound('flip');
                         }
                     }
-
+ 
                     createExplosion(posX, posY, currentTurn === BLACK ? '#a855f7' : '#ec4899', 25);
                     renderBoard();
                     updateScores();
                     // バランス調整: スキルによる直接強奪のため、被弾ボーナス付与
                     await addFlipProgress(opponentColor, totalFlippedCount, true, true);
-
+ 
                     if (triggeredPoison) {
                         if (currentTurn === BLACK) p1Paralyzed = true; else p2Paralyzed = true;
                         playSound('bomb');
@@ -2055,20 +2060,20 @@
                         setMessage("🧪 毒トラップ発動！強奪した駒に毒が...次のターン麻痺！");
                         await sleep(1000);
                     }
-
+ 
                     await sleep(600);
                     await finishTurn();
                     return;
                 }
             }
-
+ 
             // Normal Placement (or Shield / Bomb / INMUPOWER Skill)
             const flippable = getFlippableDiscs(r, c, currentTurn);
             if (flippable.length === 0) {
                 isProcessing = false;
                 return;
             }
-
+ 
             if (currentSkill) {
                 await triggerSkillCutin(currentSkill, currentTurn);
                 if (!isTestMode) currentSkills[currentSkill]--;
@@ -2076,17 +2081,17 @@
                 if (currentSkill === 'inmu') inmuQueued = currentTurn;
             }
             inmuControl = null;  // 操作された手を打ったので支配は終了
-
+ 
             playSound('place');
             board[r][c] = currentTurn;
-
+ 
             if (currentSkill === 'shield') {
                 shields[r][c] = true;
             }
-
+ 
             let totalFlippedCount = 0;
             let triggeredPoison = false;
-
+ 
             if (currentSkill === 'bomb') {
                 playSound('bomb');
                 createExplosion(posX, posY, '#ef4444', 35);
@@ -2105,7 +2110,7 @@
                     }
                 }
             }
-
+ 
             for (let disc of flippable) {
                 board[disc.r][disc.c] = currentTurn;
                 if (poisonTrap[disc.r][disc.c]) {
@@ -2118,7 +2123,7 @@
             
             renderBoard();
             updateScores();
-
+ 
             if (triggeredPoison) {
                 if (currentTurn === BLACK) p1Paralyzed = true; else p2Paralyzed = true;
                 playSound('bomb');
@@ -2126,21 +2131,21 @@
                 setMessage("🧪 毒トラップ発動！毒を仕込まれた駒を裏返したため、次のターンは麻痺（強制パス）となります！");
                 await sleep(1500);
             }
-
+ 
             // 相手の駒を裏返したとき、被害を受けた側（= 相手プレイヤー）のチャージゲージを増加
             // Bombスキル使用時はスキル被弾としてフラグを渡す
             await addFlipProgress(opponentColor, totalFlippedCount, true, currentSkill === 'bomb');
-
+ 
             if (mysteryBox[r][c]) await triggerMysteryBox(r, c, currentTurn);
-
+ 
             await sleep(500);
             await finishTurn();
         }
-
+ 
         async function finishTurn() {
             await waitFlips();
             if (checkGameOver()) return;
-
+ 
             let nextTurn = turn === BLACK ? WHITE : BLACK;
             
             // バランス調整: 麻痺(ターンスキップ)時に救済として+3ptチャージ
@@ -2157,7 +2162,7 @@
                 await sleep(1200);
                 nextTurn = BLACK;
             }
-
+ 
             turn = nextTurn;
             if (inmuQueued !== null && turn !== inmuQueued) {
                 inmuControl = inmuQueued;
@@ -2165,14 +2170,14 @@
             }
             updateTurnBadge();
             updateSkillUI();
-
+ 
             // INMUPOWER中は合法手だけ操作できる。打てる所がなければパス
             let inmuPass = false;
             if (inmuControl !== null && getValidMoves(turn).length === 0) {
                 inmuPass = true;
                 inmuControl = null;
             }
-
+ 
             if (inmuPass || !canPlayerMove(turn)) {
                 const opponentName = turn === BLACK ? 'P1' : (gameMode === 'vs2p' ? 'P2' : 'CPU');
                 setMessage(`${opponentName} は打てる手がありません (PASS)`);
@@ -2180,15 +2185,15 @@
                 turn = turn === BLACK ? WHITE : BLACK;
                 updateTurnBadge();
                 updateSkillUI();
-
+ 
                 if (checkGameOver()) return;
-
+ 
                 if (!canPlayerMove(turn)) {
                     checkGameOver(true);
                     return;
                 }
             }
-
+ 
             if (inmuControl !== null) {
                 const ctrlName = inmuControl === BLACK ? 'P1' : (gameMode === 'vs2p' ? 'P2' : 'CPU');
                 if (inmuControl === WHITE && gameMode === 'vsCpu') {
@@ -2203,7 +2208,7 @@
                 }
                 return;
             }
-
+ 
             if (turn === WHITE && gameMode === 'vsCpu') {
                 setMessage("CPUが思考中...");
                 renderBoard();
@@ -2216,12 +2221,12 @@
                 renderBoard();
             }
         }
-
+ 
         function checkGameOver(forceEnd = false) {
             let blackCount = 0;
             let whiteCount = 0;
             let emptyCount = 0;
-
+ 
             for (let r = 0; r < 8; r++) {
                 for (let c = 0; c < 8; c++) {
                     if (board[r][c] === BLACK) blackCount++;
@@ -2229,12 +2234,12 @@
                     else if (board[r][c] === EMPTY || board[r][c] === BONUS_CHARGE) emptyCount++;
                 }
             }
-
+ 
             const p1CanMove = canPlayerMove(BLACK);
             const p2CanMove = canPlayerMove(WHITE);
             const p1HasNormalMove = getValidMoves(BLACK).length > 0;
             const p2HasNormalMove = getValidMoves(WHITE).length > 0;
-
+ 
             if (forceEnd || emptyCount === 0 || blackCount === 0 || whiteCount === 0 || (!p1CanMove && !p2CanMove) || (!p1HasNormalMove && !p2HasNormalMove)) {
                 isProcessing = true;
                 
@@ -2244,12 +2249,12 @@
                 else if (emptyCount === 0) reason = "盤面がすべて埋まりました！";
                 else if (!p1HasNormalMove && !p2HasNormalMove) reason = "両者とも盤面に置ける場所がありません！";
                 else if (!p1CanMove && !p2CanMove) reason = "両者とも打てる手・スキルがありません！";
-
+ 
                 let title = "対局終了";
                 let body = `黒 (P1): <span class="${blackCount > whiteCount ? 'text-yellow-400 font-bold text-2xl' : ''}">${blackCount}</span>  /  白 (${gameMode === 'vs2p' ? 'P2' : 'CPU'}): <span class="${whiteCount > blackCount ? 'text-yellow-400 font-bold text-2xl' : ''}">${whiteCount}</span>`;
                 let icon = '<i class="fa-solid fa-trophy"></i>';
                 let isPlayerWin = false;
-
+ 
                 if (blackCount > whiteCount) {
                     title = gameMode === 'vs2p' ? "PLAYER 1 WIN!" : "YOU WIN!";
                     playSound('grand_win');
@@ -2266,17 +2271,17 @@
                     title = "DRAW!";
                     icon = '<i class="fa-solid fa-handshake"></i>';
                 }
-
+ 
                 if (isPlayerWin) {
                     createConfetti();
                 }
-
+ 
                 const modal = document.getElementById('gameModal');
                 const modalTitle = document.getElementById('modalTitle');
                 const modalReason = document.getElementById('modalReason');
                 const modalBody = document.getElementById('modalBody');
                 const modalIcon = document.getElementById('modalIcon');
-
+ 
                 if (modalTitle) modalTitle.innerText = title;
                 if (modalReason) modalReason.innerText = reason;
                 if (modalBody) modalBody.innerHTML = body;
@@ -2293,20 +2298,248 @@
                         }`;
                     }
                 }
-
+ 
                 return true;
             }
             return false;
         }
-
+ 
+        // ===== 先読みAI (聖級・王級・帝級・神級) =====
+        // depth: 最大の読み深さ / ms: 1手の持ち時間 / endgame: 残りこの数以下で最後まで全読み / poisonPen: 毒盤を踏む手の減点
+        const SEARCH_TIERS = {
+            sei:  { depth: 3,  ms: 500,  endgame: 0,  poisonPen: 40 },
+            ou:   { depth: 5,  ms: 900,  endgame: 8,  poisonPen: 60 },
+            tei:  { depth: 8,  ms: 1600, endgame: 10, poisonPen: 80 },
+            shin: { depth: 12, ms: 3200, endgame: 14, poisonPen: 100 }
+        };
+        const SEARCH_DIRS = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+        const SEARCH_W = [
+            100,-20, 10,  5,  5, 10,-20,100,
+            -20,-50, -2, -2, -2, -2,-50,-20,
+             10, -2, -1, -1, -1, -1, -2, 10,
+              5, -2, -1, -1, -1, -1, -2,  5,
+              5, -2, -1, -1, -1, -1, -2,  5,
+             10, -2, -1, -1, -1, -1, -2, 10,
+            -20,-50, -2, -2, -2, -2,-50,-20,
+            100,-20, 10,  5,  5, 10,-20,100
+        ];
+ 
+        // AI用: どの向きの列でも挟まれて返されることがない「角相当」のマスを、盤面から自動で見つける。
+        // 普通の盤面では4隅、十字型では先端の8マス。ブラックホールなどにも自動で対応する。
+        // 角相当のマスの重み(corner)と、その隣の危険マスの減点(x: 斜め隣 / c: 縦横の隣)
+        // 普通の盤面(4隅が角)は定石どおり強め、十字型など角が増える盤面は、テスト対局で強かった控えめな値を使う
+        const AI_W_STD = { corner: 100, x: -50, c: -20 };
+        const AI_W_MULTI = { corner: 30, x: -15, c: -6 };
+        function getAiBoardInfo() {
+            const open = (r, c) => isValidPos(r, c) && board[r][c] !== OBSTACLE;
+            const axes = [[0,1],[1,0],[1,1],[1,-1]];
+            const corners = new Set();
+            const cornerList = [];
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if (board[r][c] === OBSTACLE) continue;
+                    if (axes.every(([dr, dc]) => !open(r + dr, c + dc) || !open(r - dr, c - dc))) {
+                        corners.add(r + ',' + c);
+                        cornerList.push({ r, c });
+                    }
+                }
+            }
+            const isStd = corners.size === 4 && ['0,0', '0,7', '7,0', '7,7'].every(k => corners.has(k));
+            const AI_W = isStd ? AI_W_STD : AI_W_MULTI;
+            const W = SEARCH_W.slice();
+            for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) if (board[r][c] === OBSTACLE) W[r * 8 + c] = 0;
+            const xsq = new Set();
+            const cornerNb = [];
+            const pen = {};
+            cornerList.forEach(({ r, c }) => {
+                const nbs = [];
+                for (let dr = -1; dr <= 1; dr++) {
+                    for (let dc = -1; dc <= 1; dc++) {
+                        if (dr === 0 && dc === 0) continue;
+                        const nr = r + dr, nc = c + dc;
+                        if (!open(nr, nc) || corners.has(nr + ',' + nc)) continue;
+                        const diag = dr !== 0 && dc !== 0;
+                        const idx = nr * 8 + nc;
+                        pen[idx] = Math.min(pen[idx] === undefined ? 0 : pen[idx], diag ? AI_W.x : AI_W.c);
+                        if (diag) xsq.add(nr + ',' + nc);
+                        nbs.push(idx);
+                    }
+                }
+                cornerNb.push([r * 8 + c, nbs]);
+            });
+            Object.keys(pen).forEach(k => { W[k] = pen[k]; });
+            cornerList.forEach(({ r, c }) => { W[r * 8 + c] = AI_W.corner; });
+            return { corners, xsq, W, cornerNb };
+        }
+ 
+        // 現在の盤面から、player(通常はWHITE)の最善手を先読みで選ぶ。rootMovesはgetValidMoves()の結果。
+        function searchBestMove(level, rootMoves, me = WHITE) {
+            const cfg = SEARCH_TIERS[level];
+            const opp = me === BLACK ? WHITE : BLACK;
+            const aiInfo = getAiBoardInfo();
+            const W = aiInfo.W;
+            const cornerNb = aiInfo.cornerNb;
+            const b = new Int8Array(64), sh = new Uint8Array(64);
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    b[r * 8 + c] = board[r][c];
+                    sh[r * 8 + c] = shields[r][c] ? 1 : 0;
+                }
+            }
+            let nodes = 0, timedOut = false;
+            const deadline = performance.now() + cfg.ms;
+ 
+            function flipsAt(idx, p) {
+                const q = p === BLACK ? WHITE : BLACK;
+                const r0 = idx >> 3, c0 = idx & 7;
+                let out = null;
+                for (let k = 0; k < 8; k++) {
+                    const dr = SEARCH_DIRS[k][0], dc = SEARCH_DIRS[k][1];
+                    let r = r0 + dr, c = c0 + dc;
+                    let run = [];
+                    let blocked = false;
+                    while (r >= 0 && r < 8 && c >= 0 && c < 8 && b[r * 8 + c] === q) {
+                        if (sh[r * 8 + c]) { blocked = true; break; }   // シールド駒があると、その方向は返せない
+                        run.push(r * 8 + c);
+                        r += dr; c += dc;
+                    }
+                    if (!blocked && run.length > 0 && r >= 0 && r < 8 && c >= 0 && c < 8 && b[r * 8 + c] === p) {
+                        out = out ? out.concat(run) : run;
+                    }
+                }
+                return out;
+            }
+            function genMoves(p) {
+                const ms = [];
+                for (let i = 0; i < 64; i++) {
+                    const v = b[i];
+                    if (v === EMPTY || v === BONUS_CHARGE) {
+                        const fl = flipsAt(i, p);
+                        if (fl) ms.push({ i, fl });
+                    }
+                }
+                return ms;
+            }
+            function make(m, p) {
+                const prev = b[m.i];
+                b[m.i] = p;
+                for (let k = 0; k < m.fl.length; k++) b[m.fl[k]] = p;
+                return prev;
+            }
+            function unmake(m, p, prev) {
+                const q = p === BLACK ? WHITE : BLACK;
+                b[m.i] = prev;
+                for (let k = 0; k < m.fl.length; k++) b[m.fl[k]] = q;
+            }
+            function evaluate(movesOfP, p) {
+                let s = 0;
+                for (let i = 0; i < 64; i++) {
+                    const v = b[i];
+                    if (v === me) s += W[i] + (sh[i] ? 12 : 0);
+                    else if (v === opp) s -= W[i] + (sh[i] ? 12 : 0);
+                }
+                // 角を取っていれば、その隣の駒は危険ではなくなる
+                for (let k = 0; k < cornerNb.length; k++) {
+                    const ci = cornerNb[k][0];
+                    const v = b[ci];
+                    if (v === me || v === opp) {
+                        const sign = v === me ? 1 : -1;
+                        const ns = cornerNb[k][1];
+                        for (let j = 0; j < ns.length; j++) {
+                            if (b[ns[j]] === v) s += sign * (-W[ns[j]] + 8);
+                        }
+                    }
+                }
+                const other = p === BLACK ? WHITE : BLACK;
+                const mobP = movesOfP.length;
+                const mobO = genMoves(other).length;
+                const myMob = p === me ? mobP : mobO;
+                const opMob = p === me ? mobO : mobP;
+                s += 6 * (myMob - opMob);
+                return s;
+            }
+            function search(depth, alpha, beta, p, passed) {
+                if ((++nodes & 1023) === 0 && performance.now() > deadline) timedOut = true;
+                if (timedOut) return 0;
+                const ms = genMoves(p);
+                if (ms.length === 0) {
+                    if (passed) {   // 両者打てない = 終局。石差で評価
+                        let d = 0;
+                        for (let i = 0; i < 64; i++) { if (b[i] === me) d++; else if (b[i] === opp) d--; }
+                        return d * 1000;
+                    }
+                    return search(depth, alpha, beta, p === BLACK ? WHITE : BLACK, true);
+                }
+                if (depth <= 0) return evaluate(ms, p);
+                ms.sort((x, y) => W[y.i] - W[x.i]);
+                const next = p === BLACK ? WHITE : BLACK;
+                if (p === me) {
+                    let best = -Infinity;
+                    for (let k = 0; k < ms.length; k++) {
+                        const prev = make(ms[k], p);
+                        const v = search(depth - 1, alpha, beta, next, false);
+                        unmake(ms[k], p, prev);
+                        if (timedOut) return 0;
+                        if (v > best) best = v;
+                        if (v > alpha) alpha = v;
+                        if (alpha >= beta) break;
+                    }
+                    return best;
+                } else {
+                    let best = Infinity;
+                    for (let k = 0; k < ms.length; k++) {
+                        const prev = make(ms[k], p);
+                        const v = search(depth - 1, alpha, beta, next, false);
+                        unmake(ms[k], p, prev);
+                        if (timedOut) return 0;
+                        if (v < best) best = v;
+                        if (v < beta) beta = v;
+                        if (alpha >= beta) break;
+                    }
+                    return best;
+                }
+            }
+ 
+            let empties = 0;
+            for (let i = 0; i < 64; i++) if (b[i] === EMPTY || b[i] === BONUS_CHARGE) empties++;
+            let maxD = cfg.depth;
+            if (cfg.endgame > 0 && empties <= cfg.endgame) maxD = empties + 2;   // 終盤は最後まで読み切る
+ 
+            let rootMs = genMoves(me);
+            if (rootMs.length === 0) return rootMoves[0];
+            rootMs.sort((x, y) => W[y.i] - W[x.i]);
+            let bestRoot = rootMs[0];
+ 
+            for (let d = 1; d <= maxD; d++) {
+                let bestVal = -Infinity, bestMove = null;
+                for (let k = 0; k < rootMs.length; k++) {
+                    const m = rootMs[k];
+                    const pen = poisonTrap[m.i >> 3][m.i & 7] ? cfg.poisonPen : 0;   // 毒盤を踏むと1手休みになる
+                    const prev = make(m, me);
+                    const a = bestVal === -Infinity ? -Infinity : bestVal + pen;
+                    const v = search(d - 1, a, Infinity, opp, false);
+                    unmake(m, me, prev);
+                    if (timedOut) break;
+                    const adj = v - pen;
+                    if (adj > bestVal) { bestVal = adj; bestMove = m; }
+                }
+                if (timedOut) break;
+                bestRoot = bestMove;
+                rootMs = [bestMove].concat(rootMs.filter(x => x !== bestMove));   // 次の深さではこの手から調べる
+            }
+ 
+            const found = rootMoves.find(x => x.r * 8 + x.c === bestRoot.i);
+            return found || rootMoves[0];
+        }
+ 
         async function runCpuTurn() {
             const levelSelect = document.getElementById('aiLevelSelect');
             const level = levelSelect ? levelSelect.value : 'medium';
             const validMoves = getValidMoves(WHITE);
-
+ 
             let usedSkill = null;
-
-            if (cpuSkills.poison > 0 && Math.random() < 0.25) {
+ 
+            if (cpuSkills.poison > 0 && validMoves.length > 0 && Math.random() < 0.25) {
                 // 毒は自分の駒に仕込む（相手が裏返すと麻痺）。裏返されにくい角・シールド駒は避ける
                 let myDiscsForPoison = [];
                 for (let r = 0; r < 8; r++) {
@@ -2328,7 +2561,7 @@
                     await sleep(600);
                 }
             }
-
+ 
             if (cpuSkills.warp > 0 && Math.random() < 0.3) {
                 // 周囲2マス以内の敵駒と交換し、交換後に最も多く裏返せる組み合わせを選ぶ（外周・角・シールドは対象外）
                 const swappable = (r, c) => !shields[r][c] && !isEdgeButNotCorner(r, c) && !isCorner(r, c);
@@ -2353,26 +2586,26 @@
                 if (bestPair) {
                     const myDisc = { r: bestPair.r1, c: bestPair.c1 };
                     const enemyDisc = { r: bestPair.r2, c: bestPair.c2 };
-
+ 
                     cpuSkills.warp--;
                     await triggerSkillCutin('warp', WHITE);
-
+ 
                     const temp = board[myDisc.r][myDisc.c];
                     board[myDisc.r][myDisc.c] = board[enemyDisc.r][enemyDisc.c];
                     board[enemyDisc.r][enemyDisc.c] = temp;
-
+ 
                     const tempShield = shields[myDisc.r][myDisc.c];
                     shields[myDisc.r][myDisc.c] = shields[enemyDisc.r][enemyDisc.c];
                     shields[enemyDisc.r][enemyDisc.c] = tempShield;
-
+ 
                     // Swap poison state too
                     const tempPoison = poisonTrap[myDisc.r][myDisc.c];
                     poisonTrap[myDisc.r][myDisc.c] = poisonTrap[enemyDisc.r][enemyDisc.c];
                     poisonTrap[enemyDisc.r][enemyDisc.c] = tempPoison;
-
+ 
                     playSound('bomb');
                     createExplosion(window.innerWidth / 2, window.innerHeight / 2, '#eab308', 30);
-
+ 
                     let totalFlippedCount = 0;
                     let triggeredPoison = false;
                     for (let [dr, dc] of dirs8) {
@@ -2387,7 +2620,7 @@
                             playSound('flip');
                         }
                     }
-
+ 
                     renderBoard();
                     updateScores();
                     if (totalFlippedCount > 0) {
@@ -2407,7 +2640,7 @@
                     return;
                 }
             }
-
+ 
             if (validMoves.length === 0 && cpuSkills.vanish > 0 && hasVanishTarget(WHITE)) {
                 let myDiscs = [];
                 for (let r = 0; r < 8; r++) {
@@ -2426,7 +2659,7 @@
                     createExplosion(window.innerWidth / 2, window.innerHeight / 2, '#a855f7', 30);
                     renderBoard();
                     updateScores();
-
+ 
                     await sleep(600);
                     const newMoves = getValidMoves(WHITE);
                     if (newMoves.length > 0) {
@@ -2434,7 +2667,7 @@
                         const placeTarget = newMoves[0];
                         playSound('place');
                         board[placeTarget.r][placeTarget.c] = WHITE;
-
+ 
                         let totalFlippedCount = 0;
                         let triggeredPoison = false;
                         for (let disc of placeTarget.flipped) {
@@ -2464,7 +2697,7 @@
                     return;
                 }
             }
-
+ 
             if (validMoves.length === 0) {
                 setMessage("CPUは打てる場所がありません (PASS)");
                 await sleep(1000);
@@ -2473,34 +2706,37 @@
                 updateSkillUI();
                 
                 if (checkGameOver()) return;
-
+ 
                 if (!canPlayerMove(BLACK)) {
                     checkGameOver(true);
                     return;
                 }
-
+ 
                 setMessage("P1 (黒) のターンです");
                 isProcessing = false;
                 renderBoard();
                 return;
             }
-
+ 
+            const aiInfo = getAiBoardInfo();
             if ((cpuSkills.inmu || 0) > 0 && Math.random() < 0.6) {
                 usedSkill = 'inmu';
             } else if (level !== 'easy') {
-                const cornerMove = validMoves.find(m => isCorner(m.r, m.c));
+                const cornerMove = validMoves.find(m => aiInfo.corners.has(m.r + ',' + m.c));
                 if (cornerMove && cpuSkills.shield > 0 && Math.random() < 0.7) {
                     usedSkill = 'shield';
                 } else if (cpuSkills.bomb > 0 && validMoves.some(m => m.flipped.length >= 4) && Math.random() < 0.4) {
                     usedSkill = 'bomb';
                 }
             }
-
+ 
             let chosenMove = validMoves[0];
-            if (level === 'easy') {
+            if (SEARCH_TIERS[level]) {
+                chosenMove = searchBestMove(level, validMoves, WHITE);
+            } else if (level === 'easy') {
                 chosenMove = validMoves[Math.floor(Math.random() * validMoves.length)];
             } else if (level === 'medium') {
-                const corners = validMoves.filter(m => isCorner(m.r, m.c));
+                const corners = validMoves.filter(m => aiInfo.corners.has(m.r + ',' + m.c));
                 if (corners.length > 0) {
                     chosenMove = corners[Math.floor(Math.random() * corners.length)];
                 } else {
@@ -2510,30 +2746,29 @@
             } else {
                 const evaluate = (m) => {
                     let score = m.flipped.length;
-                    if (isCorner(m.r, m.c)) score += 50;
-                    const isXSquare = (m.r === 1 || m.r === 6) && (m.c === 1 || m.c === 6);
-                    if (isXSquare) score -= 20;
+                    if (aiInfo.corners.has(m.r + ',' + m.c)) score += 50;
+                    if (aiInfo.xsq.has(m.r + ',' + m.c)) score -= 20;
                     return score;
                 };
                 validMoves.sort((a, b) => evaluate(b) - evaluate(a));
                 chosenMove = validMoves[0];
             }
-
+ 
             if (usedSkill) {
                 await triggerSkillCutin(usedSkill, WHITE);
                 cpuSkills[usedSkill]--;
                 if (usedSkill === 'inmu') inmuQueued = WHITE;
             }
-
+ 
             const { r, c, flipped } = chosenMove;
-
+ 
             playSound('place');
             board[r][c] = WHITE;
-
+ 
             if (usedSkill === 'shield') {
                 shields[r][c] = true;
             }
-
+ 
             let totalFlippedCount = 0;
             let triggeredPoison = false;
             if (usedSkill === 'bomb') {
@@ -2554,7 +2789,7 @@
                     }
                 }
             }
-
+ 
             for (let disc of flipped) {
                 board[disc.r][disc.c] = WHITE;
                 if (poisonTrap[disc.r][disc.c]) {
@@ -2564,10 +2799,10 @@
                 totalFlippedCount++;
                 playSound('flip');
             }
-
+ 
             renderBoard();
             updateScores();
-
+ 
             if (triggeredPoison) {
                 p2Paralyzed = true;
                 playSound('bomb');
@@ -2575,21 +2810,21 @@
                 setMessage("🧪 毒トラップ発動！CPUが毒を仕込まれた駒を裏返しました。次のターン麻痺！");
                 await sleep(1500);
             }
-
+ 
             // 相手(BLACK)の駒が裏返されたので、BLACKにチャージ加算
             // Bombスキル使用時はスキル被弾としてフラグを渡す
             await addFlipProgress(BLACK, totalFlippedCount, true, usedSkill === 'bomb');
-
+ 
             if (mysteryBox[r][c]) await triggerMysteryBox(r, c, WHITE);
-
+ 
             await sleep(500);
             await finishTurn();
         }
-
+ 
         function updateSkillUI() {
             playerSkills.inmu = playerSkills.inmu || 0;
             cpuSkills.inmu = cpuSkills.inmu || 0;
-
+ 
             if (isTestMode) {
                 const skills = ['bomb', 'shield', 'poison', 'warp', 'steal', 'vanish', 'inmu'];
                 skills.forEach(s => {
@@ -2597,13 +2832,13 @@
                     cpuSkills[s] = 99;
                 });
             }
-
+ 
             const currentTurn = turn;
             const currentSkills = currentTurn === BLACK ? playerSkills : cpuSkills;
             const currentFlipCount = currentTurn === BLACK ? playerFlipCount : cpuFlipCount;
-
+ 
             const isHumanTurn = isHumanTurnNow();
-
+ 
             const titleEl = document.getElementById('skillOwnerTitle');
             if (titleEl) {
                 let text = "特殊能力 (PLAYER)";
@@ -2613,20 +2848,22 @@
                 if (isTestMode) text += " 🧪 [TEST]";
                 titleEl.innerText = text;
             }
-
+ 
+            const noMoveNow = isHumanTurn && getValidMoves(currentTurn).length === 0;
             const skills = ['bomb', 'shield', 'poison', 'warp', 'steal', 'vanish', 'inmu'];
             skills.forEach(s => {
                 const btn = document.getElementById(`btn${s.charAt(0).toUpperCase() + s.slice(1)}`);
                 const cnt = document.getElementById(`cnt${s.charAt(0).toUpperCase() + s.slice(1)}`);
                 if (cnt) cnt.innerText = isTestMode ? '∞' : currentSkills[s];
-
+ 
                 if (btn) {
-                    if ((!isTestMode && currentSkills[s] <= 0) || !isHumanTurn || inmuControl !== null) {
+                    if ((!isTestMode && currentSkills[s] <= 0) || !isHumanTurn || inmuControl !== null
+                        || (noMoveNow && !NO_MOVE_SKILLS.includes(s))) {
                         btn.disabled = true;
                     } else {
                         btn.disabled = false;
                     }
-
+ 
                     if (activeSkill === s) {
                         btn.classList.add('ring-2', 'ring-cyan-400', 'bg-cyan-900/50');
                     } else {
@@ -2634,20 +2871,20 @@
                     }
                 }
             });
-
+ 
             const inmuBtn = document.getElementById('btnInmu');
             if (inmuBtn) inmuBtn.classList.toggle('hidden', currentStage !== 'yajuu');
-
+ 
             const chargeBar = document.getElementById('chargeBar');
             const chargeText = document.getElementById('chargeText');
             const disadvantageBadge = document.getElementById('disadvantageBadge');
-
+ 
             if (chargeBar && chargeText) {
                 const pct = Math.min(100, (currentFlipCount / 15) * 100);
                 chargeBar.style.width = `${pct}%`;
                 chargeText.innerText = `${currentFlipCount} / 15 駒`;
             }
-
+ 
             if (disadvantageBadge) {
                 const mult = getDisadvantageMultiplier(currentTurn);
                 if (mult > 1.0) {
@@ -2658,43 +2895,43 @@
                 }
             }
         }
-
+ 
         function changeTheme() {
             const select = document.getElementById('themeSelect');
             if (!select) return;
             const theme = select.value;
             document.body.className = `theme-${theme} min-h-screen flex flex-col justify-between items-center p-2 sm:p-4`;
         }
-
+ 
         function changeStage() {
             resetGame();
         }
-
+ 
         function changeGameMode() {
             const select = document.getElementById('gameModeSelect');
             if (select) gameMode = select.value;
             resetGame();
         }
-
+ 
         function resetGame() {
             initGame();
         }
-
+ 
         function openRuleModal() {
             const modal = document.getElementById('ruleModal');
             if (modal) modal.classList.remove('hidden');
         }
-
+ 
         function closeRuleModal() {
             const modal = document.getElementById('ruleModal');
             if (modal) modal.classList.add('hidden');
         }
-
+ 
         function closeModal() {
             const modal = document.getElementById('gameModal');
             if (modal) modal.classList.add('hidden');
         }
-
+ 
         window.onload = () => {
             initParticleCanvas();
             initGame();
@@ -2711,13 +2948,13 @@
   let netRole = null, want = null, peer = null, conn = null, timer = null, lastMsg = '';
   const mine = () => netRole === 'host' ? BLACK : WHITE;
   const actor = () => inmuControl !== null ? inmuControl : turn;   // 今操作する人
-
+ 
   // 元の関数を退避
   const O = { render: renderBoard, skillUI: updateSkillUI, setMsg: setMessage, click: handleCellClick,
     select: selectSkill, init: initGame, reset: resetGame, over: checkGameOver, sound: playSound,
     cutin: triggerSkillCutin, scores: updateScores, badge: updateTurnBadge,
     testT: toggleTestMode, testO: openTestModeModal };
-
+ 
   const send = m => { try { if (conn && conn.open) conn.send(m); } catch (e) {} };
   const sendState = () => {
     clearTimeout(timer);
@@ -2726,7 +2963,7 @@
       currentStage, msg: lastMsg } }), 30);
   };
   const isHost = () => netRole === 'host';
-
+ 
   // 自分の番でないときは操作できないようにする
   function lockUI() {
     if (!netRole) return;
@@ -2742,7 +2979,7 @@
       el.classList.remove('cell-highlight','cell-poison-target','cell-warp-source','cell-warp-target','cell-skill-target','cell-vanish-target');
     });
   }
-
+ 
   // ---- 関数の差し替え ----
   window.setMessage = m => { lastMsg = m; O.setMsg(m); if (isHost()) sendState(); };
   window.renderBoard = () => { O.render(); lockUI(); if (isHost()) sendState(); };
@@ -2770,7 +3007,7 @@
   };
   window.toggleTestMode = () => netRole ? O.setMsg('オンライン対戦中はテストモードを使えません') : O.testT();
   window.openTestModeModal = () => netRole ? O.setMsg('オンライン対戦中はテストモードを使えません') : O.testO();
-
+ 
   // ---- ゲスト側：ホストの状態を反映 ----
   function apply(s) {
     ({ board, shields, poisonTrap, mysteryBox, inmuControl, turn, isProcessing, activeSkill, warpSourceCell, p1Paralyzed, p2Paralyzed,
@@ -2786,7 +3023,7 @@
     g.querySelector('.glass-panel').className = m.cls;
     if (/WIN/.test(m.title)) createConfetti();
   }
-
+ 
   function onData(m) {
     if (!m || typeof m !== 'object') return;
     if (isHost()) {
@@ -2800,7 +3037,7 @@
       else if (m.t === 'o') showOver(m);
     }
   }
-
+ 
   // ---- 接続まわり ----
   const status = t => { $('netStatus').textContent = t; };
   function banner() {
@@ -2853,7 +3090,7 @@
   async function copy(text) {
     try { await navigator.clipboard.writeText(text); status('コピーしました'); } catch (e) { status('コピーできませんでした: ' + text); }
   }
-
+ 
   // ---- UI ----
   const ui = document.createElement('div');
   ui.innerHTML = `
@@ -2891,6 +3128,6 @@
   if (q) { $('netCode').value = q; $('netPanel').classList.remove('hidden'); }
 })();
 </script>
-
+ 
 </body>
 </html>
