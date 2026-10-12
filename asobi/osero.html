@@ -1477,7 +1477,9 @@
                 return s;
             };
             moves.sort((a, b) => goodness(a) - goodness(b));
-            const m = moves[0];
+            const level = document.getElementById('aiLevelSelect').value;
+            const action = (level === 'tei' || level === 'shin') ? chooseStrategicCpuAction(level) : null;
+            const m = action ? moves.find(m => m.r * 8 + m.c === action.move) : moves[0];
             setMessage(`👹 CPUがあなたの駒を (${m.r + 1}, ${m.c + 1}) に置かせます…`);
             await sleep(1000);
             isProcessing = false;
@@ -2099,7 +2101,7 @@
                     for (let dc = -1; dc <= 1; dc++) {
                         let nr = r + dr;
                         let nc = c + dc;
-                        if (isValidPos(nr, nc) && board[nr][nc] === opponentColor && !shields[nr][nc]) {
+                        if (isValidPos(nr, nc) && board[nr][nc] === opponentColor && !shields[nr][nc] && !isCorner(nr, nc)) {
                             board[nr][nc] = currentTurn;
                             if (poisonTrap[nr][nc]) {
                                 triggeredPoison = true;
@@ -2532,9 +2534,210 @@
             return found || rootMoves[0];
         }
  
+        // 帝級・神級専用。実盤面には触れず、スキルを含む候補を複製盤面で比較する。
+        const SKILL_AI_COST = { bomb: 18, shield: 22, poison: 12, warp: 18, steal: 24, vanish: 12, inmu: 30 };
+        function skillAiState() {
+            return { b: board.flat(), sh: shields.flat(), poison: poisonTrap.flat(),
+                stock: { [BLACK]: { ...playerSkills }, [WHITE]: { ...cpuSkills } },
+                paralyzed: { [BLACK]: p1Paralyzed, [WHITE]: p2Paralyzed },
+                p: turn, controller: inmuControl, queued: inmuQueued };
+        }
+        function skillAiClone(s) {
+            return { ...s, b: s.b.slice(), sh: s.sh.slice(), poison: s.poison.slice(),
+                stock: { [BLACK]: { ...s.stock[BLACK] }, [WHITE]: { ...s.stock[WHITE] } },
+                paralyzed: { ...s.paralyzed } };
+        }
+        function skillAiFlips(s, i, p) {
+            const out = [], q = p === BLACK ? WHITE : BLACK;
+            for (const [dr, dc] of SEARCH_DIRS) {
+                let r = (i >> 3) + dr, c = (i & 7) + dc, run = [];
+                while (isValidPos(r, c) && s.b[r * 8 + c] === q) {
+                    if (s.sh[r * 8 + c]) { run = []; break; }
+                    run.push(r * 8 + c); r += dr; c += dc;
+                }
+                if (run.length && isValidPos(r, c) && s.b[r * 8 + c] === p) out.push(...run);
+            }
+            return out;
+        }
+        function skillAiMoves(s, p) {
+            const out = [];
+            for (let i = 0; i < 64; i++) {
+                if ((s.b[i] === EMPTY || s.b[i] === BONUS_CHARGE) && skillAiFlips(s, i, p).length) out.push(i);
+            }
+            return out;
+        }
+        function skillAiTerminal(s) {
+            return !s.b.includes(BLACK) || !s.b.includes(WHITE)
+                || !s.b.some(v => v === EMPTY || v === BONUS_CHARGE)
+                || (!skillAiMoves(s, BLACK).length && !skillAiMoves(s, WHITE).length);
+        }
+        function skillAiEvaluate(s, info) {
+            let score = 0, diff = 0;
+            const empty = s.b.filter(v => v === EMPTY || v === BONUS_CHARGE).length;
+            for (let i = 0; i < 64; i++) {
+                const sign = s.b[i] === WHITE ? 1 : s.b[i] === BLACK ? -1 : 0;
+                diff += sign;
+                score += sign * (info.W[i] + (s.sh[i] ? 24 : 0) + (empty < 16 ? 4 : 1));
+            }
+            if (skillAiTerminal(s)) return diff * 10000;
+            for (const [corner, neighbors] of info.cornerNb) {
+                const color = s.b[corner], sign = color === WHITE ? 1 : color === BLACK ? -1 : 0;
+                if (sign) for (const i of neighbors) if (s.b[i] === color) score += sign * (-info.W[i] + 8);
+            }
+            score += 8 * (skillAiMoves(s, WHITE).length - skillAiMoves(s, BLACK).length);
+            // 在庫にも価値を持たせ、効果が小さい場面では温存する。終盤は温存価値を下げる。
+            for (const skill of Object.keys(SKILL_AI_COST)) {
+                score += SKILL_AI_COST[skill] * Math.min(1, empty / 20)
+                    * ((s.stock[WHITE][skill] || 0) - (s.stock[BLACK][skill] || 0));
+            }
+            score += (s.paralyzed[BLACK] ? 45 : 0) - (s.paralyzed[WHITE] ? 45 : 0);
+            return score;
+        }
+        function skillAiApply(s, a) {
+            const n = skillAiClone(s), p = s.p, q = p === BLACK ? WHITE : BLACK;
+            const flip = i => {
+                if (n.b[i] !== p) {
+                    if (n.poison[i]) { n.paralyzed[p] = true; n.poison[i] = false; }
+                    n.b[i] = p;
+                }
+            };
+            if (a.skill) n.stock[p][a.skill]--;
+            if (a.skill === 'poison') n.poison[a.target] = true;
+            if (a.skill === 'vanish') {
+                n.b[a.target] = EMPTY; n.sh[a.target] = false; n.poison[a.target] = false;
+            }
+            if (a.skill === 'warp') {
+                [n.b[a.source], n.b[a.target]] = [n.b[a.target], n.b[a.source]];
+                [n.poison[a.source], n.poison[a.target]] = [n.poison[a.target], n.poison[a.source]];
+                for (const i of skillAiFlips(n, a.target, p)) flip(i);
+            } else if (a.skill === 'steal') {
+                flip(a.target);
+                for (const i of skillAiFlips(n, a.target, p)) flip(i);
+            } else if (a.move !== undefined) {
+                const flips = skillAiFlips(n, a.move, p);
+                n.b[a.move] = p;
+                if (a.skill === 'shield') n.sh[a.move] = true;
+                if (a.skill === 'bomb') {
+                    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+                        const r = (a.move >> 3) + dr, c = (a.move & 7) + dc, i = r * 8 + c;
+                        if (isValidPos(r, c) && n.b[i] === q && !n.sh[i] && !isCorner(r, c)) flip(i);
+                    }
+                }
+                for (const i of flips) flip(i);
+            }
+            if (s.controller !== null) n.controller = null;
+            if (a.skill === 'inmu') n.queued = p;
+            n.p = q;
+            if (n.paralyzed[q]) { n.paralyzed[q] = false; n.p = p; }
+            if (n.queued !== null && n.p !== n.queued) { n.controller = n.queued; n.queued = null; }
+            return n;
+        }
+        function skillAiActions(s) {
+            const p = s.p, q = p === BLACK ? WHITE : BLACK, moves = skillAiMoves(s, p);
+            const actions = moves.map(move => ({ move }));
+            if (s.controller !== null) return actions.length ? actions : [{ pass: true }];
+            const has = skill => s.stock[p][skill] > 0;
+            for (const move of moves) for (const skill of ['bomb', 'shield', 'inmu']) {
+                if (has(skill)) actions.push({ skill, move });
+            }
+            const interior = i => (i >> 3) > 0 && (i >> 3) < 7 && (i & 7) > 0 && (i & 7) < 7 && !s.sh[i];
+            for (let i = 0; i < 64; i++) {
+                if (has('steal') && s.b[i] === q && !s.sh[i] && !isCorner(i >> 3, i & 7)) actions.push({ skill: 'steal', target: i });
+                if (s.b[i] !== p) continue;
+                if (has('poison') && !s.poison[i]) for (const move of moves) actions.push({ skill: 'poison', target: i, move });
+                if (has('vanish')) {
+                    const removed = skillAiClone(s); removed.b[i] = EMPTY; removed.sh[i] = false; removed.poison[i] = false;
+                    const after = skillAiMoves(removed, p);
+                    if (after.length) for (const move of after) actions.push({ skill: 'vanish', target: i, move });
+                    else actions.push({ skill: 'vanish', target: i });
+                }
+                if (has('warp') && interior(i)) for (let j = 0; j < 64; j++) {
+                    if (s.b[j] === q && interior(j) && Math.max(Math.abs((i >> 3) - (j >> 3)), Math.abs((i & 7) - (j & 7))) <= 2) {
+                        actions.push({ skill: 'warp', source: i, target: j });
+                    }
+                }
+            }
+            return actions.length ? actions : [{ pass: true }];
+        }
+        function chooseStrategicCpuAction(level, state = skillAiState()) {
+            const info = getAiBoardInfo(), cfg = level === 'shin'
+                ? { ms: 3200, depth: 4, width: 20 } : { ms: 1600, depth: 3, width: 12 };
+            const deadline = performance.now() + cfg.ms;
+            const timeout = {};
+            const actor = s => s.controller === null ? s.p : s.controller;
+            function candidates(s) {
+                const maximizing = actor(s) === WHITE;
+                const list = skillAiActions(s).map(action => {
+                    const next = skillAiApply(s, action);
+                    return { action, next, score: skillAiEvaluate(next, info) };
+                });
+                list.sort((a, b) => maximizing ? b.score - a.score : a.score - b.score);
+                const selected = list.slice(0, cfg.width);
+                // スキルの候補が多くても「温存して通常着手」を比較対象から落とさない。
+                const normal = list.find(x => !x.action.skill);
+                if (normal && !selected.includes(normal)) selected.push(normal);
+                return selected;
+            }
+            function search(s, depth, alpha, beta) {
+                if (performance.now() >= deadline) throw timeout;
+                if (depth === 0 || skillAiTerminal(s)) return skillAiEvaluate(s, info);
+                const maximizing = actor(s) === WHITE;
+                let best = maximizing ? -Infinity : Infinity;
+                for (const c of candidates(s)) {
+                    const value = search(c.next, depth - 1, alpha, beta);
+                    best = maximizing ? Math.max(best, value) : Math.min(best, value);
+                    if (maximizing) alpha = Math.max(alpha, best); else beta = Math.min(beta, best);
+                    if (alpha >= beta) break;
+                }
+                return best;
+            }
+            const roots = candidates(state), maximizing = actor(state) === WHITE;
+            let best = roots[0].action;
+            for (let depth = 2; depth <= cfg.depth; depth++) {
+                let completedBest = null, value = maximizing ? -Infinity : Infinity;
+                try {
+                    for (const c of roots) {
+                        const score = search(c.next, depth - 1, -Infinity, Infinity);
+                        if (completedBest === null || (maximizing ? score > value : score < value)) {
+                            completedBest = c.action; value = score;
+                        }
+                    }
+                    best = completedBest;
+                } catch (e) { if (e !== timeout) throw e; break; }
+            }
+            return best;
+        }
+        async function runStrategicCpuAction(action) {
+            if (action.pass) {
+                await finishTurn();
+                return;
+            }
+            const click = async i => {
+                isProcessing = false;
+                await handleCellClick(i >> 3, i & 7, null);
+            };
+            activeSkill = action.skill || null;
+            warpSourceCell = null;
+            if (action.skill === 'warp') { await click(action.source); await click(action.target); }
+            else if (action.skill === 'steal') await click(action.target);
+            else {
+                if (action.skill === 'poison' || action.skill === 'vanish') await click(action.target);
+                if (action.move !== undefined) await click(action.move);
+            }
+        }
+
         async function runCpuTurn() {
             const levelSelect = document.getElementById('aiLevelSelect');
             const level = levelSelect ? levelSelect.value : 'medium';
+            if (level === 'tei' || level === 'shin') {
+                const hasSkills = Object.keys(SKILL_AI_COST).some(skill =>
+                    playerSkills[skill] > 0 || cpuSkills[skill] > 0);
+                const moves = getValidMoves(WHITE);
+                // スキルがない局面は従来どおり最大8/12手の探索を使う。
+                const move = !hasSkills && moves.length ? searchBestMove(level, moves, WHITE) : null;
+                await runStrategicCpuAction(move ? { move: move.r * 8 + move.c } : chooseStrategicCpuAction(level));
+                return;
+            }
             const validMoves = getValidMoves(WHITE);
  
             let usedSkill = null;
@@ -2778,7 +2981,7 @@
                     for (let dc = -1; dc <= 1; dc++) {
                         let nr = r + dr;
                         let nc = c + dc;
-                        if (isValidPos(nr, nc) && board[nr][nc] === BLACK && !shields[nr][nc]) {
+                        if (isValidPos(nr, nc) && board[nr][nc] === BLACK && !shields[nr][nc] && !isCorner(nr, nc)) {
                             board[nr][nc] = WHITE;
                             if (poisonTrap[nr][nc]) {
                                 triggeredPoison = true;
