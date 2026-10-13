@@ -1052,6 +1052,49 @@
  
         // バランス調整: スキルランダム排出時の重み付け
         // 強力なスキルは出にくく、補助的なスキルは出やすくする
+        // 強奪変換・ワープは獲得後の自分の5手番で失効。獲得した手番の残りは数えない。
+        const TIMED_SKILLS = ['steal', 'warp'];
+        let itemTurns = { [BLACK]: 0, [WHITE]: 0 };
+        let itemExpiry = { [BLACK]: { steal: [], warp: [] }, [WHITE]: { steal: [], warp: [] } };
+        function syncTimedItems() {
+            if (isTestMode) return;
+            for (const p of [BLACK, WHITE]) for (const skill of TIMED_SKILLS) {
+                const stock = p === BLACK ? playerSkills : cpuSkills, queue = itemExpiry[p][skill];
+                while (queue.length < stock[skill]) queue.push(itemTurns[p] + 5);
+                if (queue.length > stock[skill]) queue.splice(stock[skill]);
+                queue.sort((a, b) => a - b);
+            }
+        }
+        function grantSkill(p, skill) {
+            const stock = p === BLACK ? playerSkills : cpuSkills;
+            syncTimedItems();
+            stock[skill] = (stock[skill] || 0) + 1;
+            if (TIMED_SKILLS.includes(skill) && !isTestMode) {
+                itemExpiry[p][skill].push(itemTurns[p] + 5 + (turn === p ? 1 : 0));
+            }
+        }
+        function consumeSkill(p, skill) {
+            const stock = p === BLACK ? playerSkills : cpuSkills;
+            syncTimedItems();
+            stock[skill]--;
+            if (TIMED_SKILLS.includes(skill) && !isTestMode) itemExpiry[p][skill].shift();
+        }
+        function advanceItemExpiry(s, p) {
+            s.itemTurns[p]++;
+            for (const skill of TIMED_SKILLS) {
+                const queue = s.itemExpiry[p][skill];
+                while (queue.length && queue[0] <= s.itemTurns[p]) { queue.shift(); s.stock[p][skill]--; }
+            }
+        }
+        function endItemTurn(p) {
+            if (isTestMode) return;
+            syncTimedItems();
+            advanceItemExpiry({ itemTurns, itemExpiry, stock: { [BLACK]: playerSkills, [WHITE]: cpuSkills } }, p);
+            if (turn === p && TIMED_SKILLS.includes(activeSkill) && !(p === BLACK ? playerSkills : cpuSkills)[activeSkill]) {
+                activeSkill = null; warpSourceCell = null;
+            }
+        }
+
         function getRandomSkill() {
             const pool = [
                 { type: 'bomb', weight: 15 },
@@ -1122,7 +1165,7 @@
                 while (playerFlipCount >= 15) {
                     playerFlipCount -= 15;
                     const grantedSkill = getRandomSkill();
-                    playerSkills[grantedSkill]++;
+                    grantSkill(BLACK, grantedSkill);
                     playSound('win');
                     setMessage(`✨ P1 スキルGET！【${SKILL_NAMES[grantedSkill]}】をランダム獲得！`);
                 }
@@ -1131,7 +1174,7 @@
                 while (cpuFlipCount >= 15) {
                     cpuFlipCount -= 15;
                     const grantedSkill = getRandomSkill();
-                    cpuSkills[grantedSkill]++;
+                    grantSkill(WHITE, grantedSkill);
                     if (gameMode === 'vs2p') {
                         playSound('win');
                         setMessage(`✨ P2 スキルGET！【${SKILL_NAMES[grantedSkill]}】をランダム獲得！`);
@@ -1391,7 +1434,7 @@
                 const got = [];
                 for (let i = 0; i < 2; i++) {
                     const k = BOX_SKILL_KEYS[Math.floor(Math.random() * BOX_SKILL_KEYS.length)];
-                    skills[k] = (skills[k] || 0) + 1;
+                    grantSkill(player, k);
                     got.push(BOX_SKILL_LABELS[k]);
                 }
                 setMessage(`❓ ${who}: ${got.join(' と ')} を獲得！`);
@@ -1410,6 +1453,7 @@
             } else if (effect === 3) {
                 await triggerSkillCutin('box:全スキル没収…', player);
                 Object.keys(skills).forEach(k => { skills[k] = 0; });
+                itemExpiry[player] = { steal: [], warp: [] };
                 setMessage(`❓ ${who}: 持っているスキルを全て没収された…`);
             } else if (effect === 4) {
                 await triggerSkillCutin('box:自駒に毒×5！', player);
@@ -1477,7 +1521,9 @@
                 return s;
             };
             moves.sort((a, b) => goodness(a) - goodness(b));
-            const m = moves[0];
+            const level = document.getElementById('aiLevelSelect').value;
+            const action = (level === 'tei' || level === 'shin') ? chooseStrategicCpuAction(level) : null;
+            const m = action ? moves.find(m => m.r * 8 + m.c === action.move) : moves[0];
             setMessage(`👹 CPUがあなたの駒を (${m.r + 1}, ${m.c + 1}) に置かせます…`);
             await sleep(1000);
             isProcessing = false;
@@ -1485,6 +1531,8 @@
         }
  
         function initGame() {
+            itemTurns = { [BLACK]: 0, [WHITE]: 0 };
+            itemExpiry = { [BLACK]: { steal: [], warp: [] }, [WHITE]: { steal: [], warp: [] } };
             prevBoardSnap = null;
             flipEndTime = 0;
             Object.keys(flipAnim).forEach(k => delete flipAnim[k]);
@@ -1766,8 +1814,8 @@
                     bomb: "【爆発配置】マスを選んで配置してください。周囲3x3を自色にします。",
                     shield: "【シールド】裏返らない無敵コマを配置します。",
                     poison: "【毒盤】自分の駒を1つ選んで毒を仕込みます。相手が裏返すと麻痺！",
-                    warp: "【ワープ】周囲2マス以内の敵駒と位置交換。（※外周・シールド駒は不可）",
-                    steal: "【強奪変換】角以外の敵コマを選んで直接自分の色に変えます。",
+                    warp: "【ワープ】周囲2マス以内の敵駒と位置交換。（※外周・シールド駒は不可／獲得後、自分の5手番で失効・パスを含む）",
+                    steal: "【強奪変換】角以外の敵コマを選んで直接自分の色に変えます。（獲得後、自分の5手番で失効・パスを含む）",
                     vanish: "【消滅】消去したい自分の駒を選択してください。",
                     inmu: "👹【INMUPOWER】まず自分の駒を置く。その後、相手の手番を1回自由に操作できる（合法手から選ぶだけ）。"
                 };
@@ -1872,7 +1920,7 @@
             if (currentSkill === 'poison') {
                 if (board[r][c] === currentTurn && !poisonTrap[r][c]) {
                     await triggerSkillCutin('poison', currentTurn);
-                    if (!isTestMode) currentSkills.poison--;
+                    if (!isTestMode) consumeSkill(currentTurn, 'poison');
                     activeSkill = null;
                     poisonTrap[r][c] = true;
                     playSound('bomb');
@@ -1918,7 +1966,7 @@
                     const dist = Math.max(Math.abs(r - warpSourceCell.r), Math.abs(c - warpSourceCell.c));
                     if (dist > 0 && dist <= 2 && board[r][c] === opponentColor && !shields[r][c] && !isEdgeButNotCorner(r, c) && !isCorner(r, c)) {
                         await triggerSkillCutin('warp', currentTurn);
-                        if (!isTestMode) currentSkills.warp--;
+                        if (!isTestMode) consumeSkill(currentTurn, 'warp');
                         activeSkill = null;
  
                         const sR = warpSourceCell.r;
@@ -1987,7 +2035,7 @@
             if (currentSkill === 'vanish') {
                 if (board[r][c] === currentTurn) {
                     await triggerSkillCutin('vanish', currentTurn);
-                    if (!isTestMode) currentSkills.vanish--;
+                    if (!isTestMode) consumeSkill(currentTurn, 'vanish');
                     activeSkill = null;
                     playSound('bomb');
                     
@@ -2021,7 +2069,7 @@
             if (currentSkill === 'steal') {
                 if (board[r][c] === opponentColor && !shields[r][c] && !isCorner(r, c)) {
                     await triggerSkillCutin('steal', currentTurn);
-                    if (!isTestMode) currentSkills.steal--;
+                    if (!isTestMode) consumeSkill(currentTurn, 'steal');
                     activeSkill = null;
                     playSound('bomb');
                     board[r][c] = currentTurn;
@@ -2076,7 +2124,7 @@
  
             if (currentSkill) {
                 await triggerSkillCutin(currentSkill, currentTurn);
-                if (!isTestMode) currentSkills[currentSkill]--;
+                if (!isTestMode) consumeSkill(currentTurn, currentSkill);
                 activeSkill = null;
                 if (currentSkill === 'inmu') inmuQueued = currentTurn;
             }
@@ -2099,7 +2147,7 @@
                     for (let dc = -1; dc <= 1; dc++) {
                         let nr = r + dr;
                         let nc = c + dc;
-                        if (isValidPos(nr, nc) && board[nr][nc] === opponentColor && !shields[nr][nc]) {
+                        if (isValidPos(nr, nc) && board[nr][nc] === opponentColor && !shields[nr][nc] && !isCorner(nr, nc)) {
                             board[nr][nc] = currentTurn;
                             if (poisonTrap[nr][nc]) {
                                 triggeredPoison = true;
@@ -2144,6 +2192,7 @@
  
         async function finishTurn() {
             await waitFlips();
+            endItemTurn(turn);
             if (checkGameOver()) return;
  
             let nextTurn = turn === BLACK ? WHITE : BLACK;
@@ -2151,12 +2200,14 @@
             // バランス調整: 麻痺(ターンスキップ)時に救済として+3ptチャージ
             if (nextTurn === BLACK && p1Paralyzed) {
                 p1Paralyzed = false;
+                endItemTurn(BLACK);
                 setMessage("⚡ P1 は毒により麻痺中！ターンがスキップされます。（+3 チャージ）");
                 await addFlipProgress(BLACK, 3, false, false); // 固定で3pt加算
                 await sleep(1200);
                 nextTurn = WHITE;
             } else if (nextTurn === WHITE && p2Paralyzed) {
                 p2Paralyzed = false;
+                endItemTurn(WHITE);
                 setMessage(`⚡ ${gameMode === 'vs2p' ? 'P2' : 'CPU'} は毒により麻痺中！ターンがスキップされます。（+3 チャージ）`);
                 await addFlipProgress(WHITE, 3, false, false); // 固定で3pt加算
                 await sleep(1200);
@@ -2182,6 +2233,7 @@
                 const opponentName = turn === BLACK ? 'P1' : (gameMode === 'vs2p' ? 'P2' : 'CPU');
                 setMessage(`${opponentName} は打てる手がありません (PASS)`);
                 await sleep(1000);
+                endItemTurn(turn);
                 turn = turn === BLACK ? WHITE : BLACK;
                 updateTurnBadge();
                 updateSkillUI();
@@ -2309,8 +2361,8 @@
         const SEARCH_TIERS = {
             sei:  { depth: 3,  ms: 500,  endgame: 0,  poisonPen: 40 },
             ou:   { depth: 5,  ms: 900,  endgame: 8,  poisonPen: 60 },
-            tei:  { depth: 8,  ms: 1600, endgame: 10, poisonPen: 80 },
-            shin: { depth: 12, ms: 3200, endgame: 14, poisonPen: 100 }
+            tei:  { depth: 8,  ms: 3000, endgame: 10, poisonPen: 80 },
+            shin: { depth: 12, ms: 6000, endgame: 14, poisonPen: 100 }
         };
         const SEARCH_DIRS = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
         const SEARCH_W = [
@@ -2532,9 +2584,293 @@
             return found || rootMoves[0];
         }
  
+        // 帝級・神級専用。実盤面には触れず、スキルを含む候補を複製盤面で比較する。
+        const SKILL_AI_COST = { bomb: 18, shield: 22, poison: 12, warp: 18, steal: 24, vanish: 12, inmu: 30 };
+        function skillAiState() {
+            syncTimedItems();
+            return { b: board.flat(), sh: shields.flat(), poison: poisonTrap.flat(),
+                stock: { [BLACK]: { ...playerSkills }, [WHITE]: { ...cpuSkills } },
+                paralyzed: { [BLACK]: p1Paralyzed, [WHITE]: p2Paralyzed },
+                charge: { [BLACK]: playerFlipCount, [WHITE]: cpuFlipCount },
+                itemTurns: { ...itemTurns },
+                itemExpiry: Object.fromEntries([BLACK, WHITE].map(p => [p, { steal: itemExpiry[p].steal.slice(), warp: itemExpiry[p].warp.slice() }])),
+                expectedItems: { [BLACK]: 0, [WHITE]: 0 },
+                p: turn, controller: inmuControl, queued: inmuQueued };
+        }
+        function skillAiClone(s) {
+            return { ...s, b: s.b.slice(), sh: s.sh.slice(), poison: s.poison.slice(),
+                stock: { [BLACK]: { ...s.stock[BLACK] }, [WHITE]: { ...s.stock[WHITE] } },
+                paralyzed: { ...s.paralyzed }, charge: { ...s.charge }, expectedItems: { ...s.expectedItems }, itemTurns: { ...s.itemTurns },
+                itemExpiry: Object.fromEntries([BLACK, WHITE].map(p => [p, { steal: s.itemExpiry[p].steal.slice(), warp: s.itemExpiry[p].warp.slice() }])) };
+        }
+        function skillAiFlips(s, i, p) {
+            const out = [], q = p === BLACK ? WHITE : BLACK;
+            for (const [dr, dc] of SEARCH_DIRS) {
+                let r = (i >> 3) + dr, c = (i & 7) + dc, run = [];
+                while (isValidPos(r, c) && s.b[r * 8 + c] === q) {
+                    if (s.sh[r * 8 + c]) { run = []; break; }
+                    run.push(r * 8 + c); r += dr; c += dc;
+                }
+                if (run.length && isValidPos(r, c) && s.b[r * 8 + c] === p) out.push(...run);
+            }
+            return out;
+        }
+        function skillAiMoves(s, p) {
+            const out = [];
+            for (let i = 0; i < 64; i++) {
+                if ((s.b[i] === EMPTY || s.b[i] === BONUS_CHARGE) && skillAiFlips(s, i, p).length) out.push(i);
+            }
+            return out;
+        }
+        function skillAiTerminal(s) {
+            return !s.b.includes(BLACK) || !s.b.includes(WHITE)
+                || !s.b.some(v => v === EMPTY || v === BONUS_CHARGE)
+                || (!skillAiMoves(s, BLACK).length && !skillAiMoves(s, WHITE).length);
+        }
+        // 在庫価値は用途・残りマス・重複所持で変える。確率的な新規獲得は期待値で扱う。
+        function skillAiReserve(s, p, moves, empty) {
+            const q = p === BLACK ? WHITE : BLACK;
+            const usable = { bomb: moves.length, shield: moves.length, inmu: moves.length,
+                poison: 0, steal: 0, warp: 0, vanish: 0 };
+            for (let i = 0; i < 64; i++) {
+                if (s.b[i] === p) {
+                    usable.vanish++;
+                    if (!s.poison[i] && !s.sh[i]) usable.poison++;
+                    if ((i >> 3) > 0 && (i >> 3) < 7 && (i & 7) > 0 && (i & 7) < 7 && !s.sh[i]) usable.warp++;
+                }
+                if (s.b[i] === q && !s.sh[i] && !isCorner(i >> 3, i & 7)) usable.steal++;
+            }
+            let value = 0;
+            for (const skill of Object.keys(SKILL_AI_COST)) {
+                const count = Math.max(0, s.stock[p][skill] || 0);
+                const usefulness = usable[skill] ? 1 : (skill === 'vanish' || skill === 'steal' ? 0.5 : 0.2);
+                const remaining = TIMED_SKILLS.includes(skill) && s.itemExpiry[p][skill].length
+                    ? Math.max(0, s.itemExpiry[p][skill][0] - s.itemTurns[p]) : 5;
+                value += SKILL_AI_COST[skill] * usefulness * Math.min(1, empty / 16)
+                    * Math.min(1, remaining / 5) * (1 - Math.pow(0.65, count)) / 0.35;
+            }
+            // 新規アイテムの種類を捏造せず、平均価値だけを評価へ反映する。
+            value += ((s.expectedItems[p] || 0) + (s.charge[p] || 0) / 15) * 17 * Math.min(1, empty / 16);
+            return value;
+        }
+        function skillAiEvaluate(s, info) {
+            let score = 0, diff = 0;
+            const empty = s.b.filter(v => v === EMPTY || v === BONUS_CHARGE).length;
+            const moves = { [BLACK]: skillAiMoves(s, BLACK), [WHITE]: skillAiMoves(s, WHITE) };
+            for (let i = 0; i < 64; i++) {
+                const sign = s.b[i] === WHITE ? 1 : s.b[i] === BLACK ? -1 : 0;
+                diff += sign;
+                score += sign * (info.W[i] + (empty < 16 ? 4 : 1));
+                if (sign && s.sh[i]) {
+                    // シールドは自駒の保護に加え、連続する自駒の列を返しにくくする足場。
+                    let anchored = 0;
+                    for (const [dr, dc] of SEARCH_DIRS) {
+                        let r = (i >> 3) + dr, c = (i & 7) + dc;
+                        while (isValidPos(r, c) && s.b[r * 8 + c] === s.b[i]) {
+                            anchored++; r += dr; c += dc;
+                        }
+                    }
+                    score += sign * (24 + Math.min(18, anchored * 2));
+                }
+            }
+            if (skillAiTerminal(s)) return diff * 10000;
+            for (const [corner, neighbors] of info.cornerNb) {
+                const color = s.b[corner], sign = color === WHITE ? 1 : color === BLACK ? -1 : 0;
+                if (sign) for (const i of neighbors) if (s.b[i] === color) score += sign * (-info.W[i] + 8);
+            }
+            score += 8 * (moves[WHITE].length - moves[BLACK].length);
+            for (const p of [BLACK, WHITE]) {
+                const sign = p === WHITE ? 1 : -1, q = p === BLACK ? WHITE : BLACK;
+                score += sign * skillAiReserve(s, p, moves[p], empty);
+                // 相手の合法手で実際に裏返される毒だけを重視する。安全な駒への毒は低評価。
+                let threat = 0;
+                for (const move of moves[q]) {
+                    const flips = skillAiFlips(s, move, q);
+                    if (flips.some(i => s.poison[i])) threat++;
+                }
+                if (moves[q].length) score += sign * 24 * threat / moves[q].length;
+            }
+            score += (s.paralyzed[BLACK] ? 45 : 0) - (s.paralyzed[WHITE] ? 45 : 0);
+            return score;
+        }
+        function skillAiCharge(s, p, hits, multiplier = true, skill = false) {
+            if (!hits) return;
+            const q = p === BLACK ? WHITE : BLACK;
+            const diff = s.b.filter(v => v === q).length - s.b.filter(v => v === p).length;
+            let rate = multiplier ? (diff >= 20 ? 3 : diff >= 12 ? 2.5 : diff >= 6 ? 2 : diff >= 3 ? 1.5 : 1) : 1;
+            if (skill && multiplier) rate += 0.5;
+            const total = (s.charge[p] || 0) + Math.round(hits * rate);
+            s.charge[p] = total % 15;
+            s.expectedItems[p] = (s.expectedItems[p] || 0) + Math.floor(total / 15);
+        }
+        function skillAiApply(s, a) {
+            const n = skillAiClone(s), p = s.p, q = p === BLACK ? WHITE : BLACK;
+            let hits = 0;
+            const flip = i => {
+                if (n.b[i] !== p) {
+                    hits++;
+                    if (n.poison[i]) { n.paralyzed[p] = true; n.poison[i] = false; }
+                    n.b[i] = p;
+                }
+            };
+            if (a.skill) {
+                n.stock[p][a.skill]--;
+                if (TIMED_SKILLS.includes(a.skill)) n.itemExpiry[p][a.skill].shift();
+            }
+            if (a.skill === 'poison') n.poison[a.target] = true;
+            if (a.skill === 'vanish') {
+                n.b[a.target] = EMPTY; n.sh[a.target] = false; n.poison[a.target] = false;
+            }
+            if (a.skill === 'warp') {
+                [n.b[a.source], n.b[a.target]] = [n.b[a.target], n.b[a.source]];
+                [n.poison[a.source], n.poison[a.target]] = [n.poison[a.target], n.poison[a.source]];
+                for (const i of skillAiFlips(n, a.target, p)) flip(i);
+            } else if (a.skill === 'steal') {
+                flip(a.target);
+                for (const i of skillAiFlips(n, a.target, p)) flip(i);
+            } else if (a.move !== undefined) {
+                const flips = skillAiFlips(n, a.move, p);
+                n.b[a.move] = p;
+                if (a.skill === 'shield') n.sh[a.move] = true;
+                if (a.skill === 'bomb') {
+                    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+                        const r = (a.move >> 3) + dr, c = (a.move & 7) + dc, i = r * 8 + c;
+                        if (isValidPos(r, c) && n.b[i] === q && !n.sh[i] && !isCorner(r, c)) flip(i);
+                    }
+                }
+                for (const i of flips) {
+                    // 実処理は爆発と通常反転の重複もチャージとして数える。
+                    if (n.b[i] === p) hits++; else flip(i);
+                }
+            }
+            skillAiCharge(n, q, hits, true, ['bomb', 'steal', 'warp'].includes(a.skill));
+            advanceItemExpiry(n, p);
+            if (s.controller !== null) n.controller = null;
+            if (a.skill === 'inmu') n.queued = p;
+            n.p = q;
+            if (n.paralyzed[q]) { n.paralyzed[q] = false; n.p = p; advanceItemExpiry(n, q); skillAiCharge(n, q, 3, false); }
+            if (n.queued !== null && n.p !== n.queued) { n.controller = n.queued; n.queued = null; }
+            return n;
+        }
+        function skillAiActions(s) {
+            const p = s.p, q = p === BLACK ? WHITE : BLACK, moves = skillAiMoves(s, p);
+            const actions = moves.map(move => ({ move }));
+            if (s.controller !== null) return actions.length ? actions : [{ pass: true }];
+            const has = skill => s.stock[p][skill] > 0;
+            for (const move of moves) for (const skill of ['bomb', 'shield', 'inmu']) {
+                if (has(skill)) actions.push({ skill, move });
+            }
+            const interior = i => (i >> 3) > 0 && (i >> 3) < 7 && (i & 7) > 0 && (i & 7) < 7 && !s.sh[i];
+            for (let i = 0; i < 64; i++) {
+                if (has('steal') && s.b[i] === q && !s.sh[i] && !isCorner(i >> 3, i & 7)) actions.push({ skill: 'steal', target: i });
+                if (s.b[i] !== p) continue;
+                if (has('poison') && !s.poison[i]) for (const move of moves) actions.push({ skill: 'poison', target: i, move });
+                if (has('vanish')) {
+                    const removed = skillAiClone(s); removed.b[i] = EMPTY; removed.sh[i] = false; removed.poison[i] = false;
+                    const after = skillAiMoves(removed, p);
+                    if (after.length) for (const move of after) actions.push({ skill: 'vanish', target: i, move });
+                    else actions.push({ skill: 'vanish', target: i });
+                }
+                if (has('warp') && interior(i)) for (let j = 0; j < 64; j++) {
+                    if (s.b[j] === q && interior(j) && Math.max(Math.abs((i >> 3) - (j >> 3)), Math.abs((i & 7) - (j & 7))) <= 2) {
+                        actions.push({ skill: 'warp', source: i, target: j });
+                    }
+                }
+            }
+            return actions.length ? actions : [{ pass: true }];
+        }
+        function chooseStrategicCpuAction(level, state = skillAiState()) {
+            const info = getAiBoardInfo(), cfg = level === 'shin'
+                ? { ms: 6000, depth: 8, width: 32 } : { ms: 3000, depth: 6, width: 20 };
+            const deadline = performance.now() + cfg.ms, timeout = {};
+            const actor = s => s.controller === null ? s.p : s.controller;
+            const cache = new Map();
+            const key = s => JSON.stringify(s);
+            const checkTime = () => { if (performance.now() >= deadline) throw timeout; };
+            function candidates(s) {
+                const k = key(s);
+                if (cache.has(k)) return cache.get(k);
+                const maximizing = actor(s) === WHITE, list = [];
+                for (const action of skillAiActions(s)) {
+                    checkTime();
+                    const next = skillAiApply(s, action);
+                    list.push({ action, next, score: skillAiEvaluate(next, info) });
+                }
+                list.sort((a, b) => maximizing ? b.score - a.score : a.score - b.score);
+                const selected = list.slice(0, cfg.width);
+                // 温存と各スキルの最良候補を残す。毒などが大量にある局面でも種類を比較する。
+                for (const skill of [undefined, ...Object.keys(SKILL_AI_COST)]) {
+                    const best = list.find(x => x.action.skill === skill);
+                    if (best && !selected.includes(best)) selected.push(best);
+                }
+                if (cache.size < 4000) cache.set(k, selected);
+                return selected;
+            }
+            function search(s, depth, alpha, beta) {
+                checkTime();
+                if (depth === 0 || skillAiTerminal(s)) return skillAiEvaluate(s, info);
+                const maximizing = actor(s) === WHITE;
+                let best = maximizing ? -Infinity : Infinity;
+                for (const c of candidates(s)) {
+                    const value = search(c.next, depth - 1, alpha, beta);
+                    best = maximizing ? Math.max(best, value) : Math.min(best, value);
+                    if (maximizing) alpha = Math.max(alpha, best); else beta = Math.min(beta, best);
+                    if (alpha >= beta) break;
+                }
+                return best;
+            }
+            // 候補生成が時間切れでも、合法な通常手またはスキルへ確実にフォールバック。
+            let best = skillAiActions(state)[0], roots;
+            try { roots = candidates(state); best = roots[0].action; }
+            catch (e) { if (e !== timeout) throw e; return best; }
+            const maximizing = actor(state) === WHITE;
+            for (let depth = 2; depth <= cfg.depth; depth++) {
+                let completedBest = null, value = maximizing ? -Infinity : Infinity;
+                try {
+                    for (const c of roots) {
+                        const score = search(c.next, depth - 1,
+                            maximizing ? value : -Infinity, maximizing ? Infinity : value);
+                        if (completedBest === null || (maximizing ? score > value : score < value)) {
+                            completedBest = c.action; value = score;
+                        }
+                    }
+                    best = completedBest;
+                    roots = roots.slice().sort((a, b) => (b.action === best ? 1 : 0) - (a.action === best ? 1 : 0));
+                } catch (e) { if (e !== timeout) throw e; break; }
+            }
+            return best;
+        }
+        async function runStrategicCpuAction(action) {
+            if (action.pass) {
+                await finishTurn();
+                return;
+            }
+            const click = async i => {
+                isProcessing = false;
+                await handleCellClick(i >> 3, i & 7, null);
+            };
+            activeSkill = action.skill || null;
+            warpSourceCell = null;
+            if (action.skill === 'warp') { await click(action.source); await click(action.target); }
+            else if (action.skill === 'steal') await click(action.target);
+            else {
+                if (action.skill === 'poison' || action.skill === 'vanish') await click(action.target);
+                if (action.move !== undefined) await click(action.move);
+            }
+        }
+
         async function runCpuTurn() {
             const levelSelect = document.getElementById('aiLevelSelect');
             const level = levelSelect ? levelSelect.value : 'medium';
+            if (level === 'tei' || level === 'shin') {
+                const hasSkills = Object.keys(SKILL_AI_COST).some(skill =>
+                    playerSkills[skill] > 0 || cpuSkills[skill] > 0);
+                const moves = getValidMoves(WHITE);
+                // スキルがない局面は従来どおり最大8/12手の探索を使う。
+                const move = !hasSkills && moves.length ? searchBestMove(level, moves, WHITE) : null;
+                await runStrategicCpuAction(move ? { move: move.r * 8 + move.c } : chooseStrategicCpuAction(level));
+                return;
+            }
             const validMoves = getValidMoves(WHITE);
  
             let usedSkill = null;
@@ -2551,7 +2887,7 @@
                 }
                 if (myDiscsForPoison.length > 0) {
                     const target = myDiscsForPoison[Math.floor(Math.random() * myDiscsForPoison.length)];
-                    cpuSkills.poison--;
+                    consumeSkill(WHITE, 'poison');
                     await triggerSkillCutin('poison', WHITE);
                     poisonTrap[target.r][target.c] = true;
                     playSound('bomb');
@@ -2587,7 +2923,7 @@
                     const myDisc = { r: bestPair.r1, c: bestPair.c1 };
                     const enemyDisc = { r: bestPair.r2, c: bestPair.c2 };
  
-                    cpuSkills.warp--;
+                    consumeSkill(WHITE, 'warp');
                     await triggerSkillCutin('warp', WHITE);
  
                     const temp = board[myDisc.r][myDisc.c];
@@ -2650,7 +2986,7 @@
                 }
                 if (myDiscs.length > 0) {
                     const target = myDiscs[Math.floor(Math.random() * myDiscs.length)];
-                    cpuSkills.vanish--;
+                    consumeSkill(WHITE, 'vanish');
                     await triggerSkillCutin('vanish', WHITE);
                     playSound('bomb');
                     board[target.r][target.c] = EMPTY;
@@ -2701,6 +3037,7 @@
             if (validMoves.length === 0) {
                 setMessage("CPUは打てる場所がありません (PASS)");
                 await sleep(1000);
+                endItemTurn(WHITE);
                 turn = BLACK;
                 updateTurnBadge();
                 updateSkillUI();
@@ -2756,7 +3093,7 @@
  
             if (usedSkill) {
                 await triggerSkillCutin(usedSkill, WHITE);
-                cpuSkills[usedSkill]--;
+                consumeSkill(WHITE, usedSkill);
                 if (usedSkill === 'inmu') inmuQueued = WHITE;
             }
  
@@ -2778,7 +3115,7 @@
                     for (let dc = -1; dc <= 1; dc++) {
                         let nr = r + dr;
                         let nc = c + dc;
-                        if (isValidPos(nr, nc) && board[nr][nc] === BLACK && !shields[nr][nc]) {
+                        if (isValidPos(nr, nc) && board[nr][nc] === BLACK && !shields[nr][nc] && !isCorner(nr, nc)) {
                             board[nr][nc] = WHITE;
                             if (poisonTrap[nr][nc]) {
                                 triggeredPoison = true;
@@ -2849,12 +3186,18 @@
                 titleEl.innerText = text;
             }
  
+            syncTimedItems();
             const noMoveNow = isHumanTurn && getValidMoves(currentTurn).length === 0;
             const skills = ['bomb', 'shield', 'poison', 'warp', 'steal', 'vanish', 'inmu'];
             skills.forEach(s => {
                 const btn = document.getElementById(`btn${s.charAt(0).toUpperCase() + s.slice(1)}`);
                 const cnt = document.getElementById(`cnt${s.charAt(0).toUpperCase() + s.slice(1)}`);
-                if (cnt) cnt.innerText = isTestMode ? '∞' : currentSkills[s];
+                if (cnt) {
+                    cnt.innerText = isTestMode ? '∞' : currentSkills[s];
+                    const queue = TIMED_SKILLS.includes(s) ? itemExpiry[currentTurn][s] : [];
+                    cnt.title = queue.length && !isTestMode ? `最短期限: 残り${queue[0] - itemTurns[currentTurn]}手番（自分の5手番で失効・パスを含む）` : '';
+                    if (queue.length && !isTestMode) cnt.innerText += ` / ${queue[0] - itemTurns[currentTurn]}手番`;
+                }
  
                 if (btn) {
                     if ((!isTestMode && currentSkills[s] <= 0) || !isHumanTurn || inmuControl !== null
@@ -2960,7 +3303,7 @@
     clearTimeout(timer);
     timer = setTimeout(() => send({ t: 's', s: { board, shields, poisonTrap, mysteryBox, inmuControl, turn, isProcessing, activeSkill,
       warpSourceCell, p1Paralyzed, p2Paralyzed, playerFlipCount, cpuFlipCount, playerSkills, cpuSkills,
-      currentStage, msg: lastMsg } }), 30);
+      currentStage, itemTurns, itemExpiry, msg: lastMsg } }), 30);
   };
   const isHost = () => netRole === 'host';
  
@@ -3011,7 +3354,7 @@
   // ---- ゲスト側：ホストの状態を反映 ----
   function apply(s) {
     ({ board, shields, poisonTrap, mysteryBox, inmuControl, turn, isProcessing, activeSkill, warpSourceCell, p1Paralyzed, p2Paralyzed,
-       playerFlipCount, cpuFlipCount, playerSkills, cpuSkills, currentStage } = s);
+       playerFlipCount, cpuFlipCount, playerSkills, cpuSkills, currentStage, itemTurns, itemExpiry } = s);
     lastMsg = s.msg; gameMode = 'vs2p';
     $('stageSelect').value = currentStage;
     O.setMsg(s.msg); O.render(); O.scores(); O.badge(); O.skillUI(); lockUI();
