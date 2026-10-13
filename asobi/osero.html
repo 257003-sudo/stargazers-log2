@@ -406,6 +406,7 @@
                 <option value="shin">難易度: 神級</option>
             </select>
  
+            <button type="button" class="profile-launch" onclick="openProfile()">プロフィール</button>
             <button id="testModeBtn" onclick="toggleTestMode()" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-bold py-1.5 px-3 rounded-lg shadow-lg transition active:scale-95">
                 <i class="fa-solid fa-flask mr-1"></i><span id="testBtnText">テストモード</span>
             </button>
@@ -441,11 +442,10 @@
                 <!-- P1 Card -->
                 <div id="playerCard" class="glass-panel rounded-xl p-3 sm:p-4 flex-1 flex items-center justify-between border-l-4 border-cyan-400 transition-all">
                     <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full disc-black flex items-center justify-center text-cyan-400 font-bold shrink-0 theme-text">
-                            P1
-                        </div>
+                        <button type="button" id="playerAvatar" class="shrink-0" onclick="openProfile()" aria-label="プロフィールを編集"></button>
                         <div>
                             <div class="text-xs text-gray-400 theme-subtitle">PLAYER 1 (黒)</div>
+                            <div id="profileEquipped" class="profile-equipped">称号なし</div>
                             <div id="scoreBlack" class="text-xl sm:text-2xl font-bold font-orbitron text-cyan-400 theme-text">2</div>
                         </div>
                     </div>
@@ -462,6 +462,7 @@
                         </div>
                         <div>
                             <div id="cpuLabel" class="text-xs text-gray-400 theme-subtitle">CPU (白)</div>
+                            <div id="cpuProfileEquipped" class="profile-equipped"></div>
                             <div id="scoreWhite" class="text-xl sm:text-2xl font-bold font-orbitron text-pink-500 theme-text-alt">2</div>
                         </div>
                     </div>
@@ -600,6 +601,7 @@
     <!-- Game End Modal -->
     <div id="gameModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden z-50 flex items-center justify-center p-4">
         <div class="glass-panel rounded-2xl p-6 max-w-sm w-full text-center border-2 border-cyan-500/40 shadow-[0_0_30px_rgba(0,243,255,0.3)] transform transition-all scale-100">
+            <div id="profileReward" class="profile-reward" role="status" aria-live="polite"></div>
             <div id="modalIcon" class="text-6xl mb-4 text-cyan-400 drop-shadow-[0_0_15px_currentColor]">
                 <i class="fa-solid fa-trophy"></i>
             </div>
@@ -719,7 +721,7 @@
                             <h4 class="font-bold text-purple-400 text-sm sm:text-base mb-1.5">🔄 5. 強奪変換（Steal Convert）</h4>
                             <div class="space-y-1.5 text-xs sm:text-[13px]">
                                 <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">概要</span>敵コマ直接強奪</p>
-                                <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">効果詳細</span>盤面上にある相手の駒を1つ直接指定し、自分の色へ奪い取って直接変換します。奪った位置からさらに周囲の相手駒を挟める場合は、連鎖反転が発生します。</p>
+                                <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">効果詳細</span>盤面上にある相手の駒を1つ直接指定し、自分の色へ奪い取って直接変換します。変わるのは指定した1枚だけで、奪った位置から挟んで連鎖反転することはありません。</p>
                                 <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">制限</span>四隅（角）にある駒やシールド駒は指定できません。</p>
                                 <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">戦術活用</span>相手の連鎖やラインの核となっている重要な駒をダイレクトに奪い取り、敵の戦術を根本から崩壊させられます。</p>
                             </div>
@@ -763,6 +765,186 @@
         NEO REVERSI 2.0 &copy; 2026 - Powered by Gemini
     </footer>
  
+<style>
+.profile-launch{border:1px solid #64748b;background:#172033;color:#f1f5f9;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer;font-size:13px}
+.profile-launch:hover{border-color:#67e8f9;background:#243044}
+#playerAvatar, #cpuAvatar.profile-online-avatar{width:56px;height:56px;background:none!important;border:0;box-shadow:none;padding:0;overflow:visible;cursor:pointer}
+.profile-avatar{position:relative;display:inline-block;width:96px;height:96px;flex-shrink:0;--profile-color:#64748b}
+.profile-core{position:absolute;inset:19%;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid var(--profile-color);background:linear-gradient(140deg,#29364c,#080e19);color:var(--profile-color);box-shadow:0 0 18px color-mix(in srgb,var(--profile-color) 35%,transparent);font-size:26px;font-weight:900}
+#playerAvatar .profile-avatar, #cpuAvatar .profile-avatar{width:56px;height:56px}#playerAvatar .profile-core, #cpuAvatar .profile-core{font-size:17px;border-width:2px}
+.profile-orbit{position:absolute;inset:0;border-radius:50%;animation:profile-spin 18s linear infinite;pointer-events:none}
+.profile-star{position:absolute;display:block;color:var(--profile-color);font-size:18px;line-height:1;transform:translate(-50%,-50%);text-shadow:0 0 5px currentColor}
+#playerAvatar .profile-star, #cpuAvatar .profile-star{font-size:12px}
+@keyframes profile-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.profile-orbit{animation:none}}
+#profileDialog{width:min(640px,calc(100vw - 24px));max-height:90dvh;overflow:auto;border:1px solid #40526e;border-radius:22px;background:#0c1423;color:#e2e8f0;padding:24px;box-shadow:0 24px 80px #0008;box-sizing:border-box;margin:auto}
+#profileDialog::backdrop{background:#020617d9;backdrop-filter:blur(5px)}
+.profile-top{display:flex;align-items:center;justify-content:space-between;gap:12px}.profile-top h2{font-size:22px;font-weight:800;margin:0}.profile-close{background:#243044;color:#e2e8f0;border:0;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:20px}
+.profile-preview{display:flex;align-items:center;gap:20px;padding:20px 0}.profile-preview strong{display:block;font-size:19px}.profile-muted{color:#a7b7ce;font-size:13px;line-height:1.6}.profile-heading{font-size:15px;font-weight:700;margin:16px 0 10px}
+.profile-glyphs{display:flex;gap:8px;flex-wrap:wrap}.profile-glyphs button{min-width:44px;height:44px;border:1px solid #40526e;border-radius:12px;background:#172033;color:#f1f5f9;font-size:23px;cursor:pointer}.profile-glyphs button[aria-pressed=true]{border:2px solid #67e8f9;background:#163345}
+.profile-ranks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.profile-rank{display:flex;gap:10px;align-items:center;text-align:left;padding:12px;background:#172033;border:1px solid #40526e;border-radius:14px;color:#e2e8f0;cursor:pointer;min-height:75px}.profile-rank[aria-pressed=true]{border:2px solid var(--rank-color);background:#223047}.profile-rank:disabled{cursor:default;opacity:.55}.profile-swatch{width:24px;height:24px;border-radius:50%;background:var(--rank-color);border:2px solid #ffffff40;flex-shrink:0}.profile-rank strong{font-size:14px;display:block}.profile-rank small{font-size:12px;color:#a7b7ce;display:block;margin-top:3px}
+.profile-actions{display:flex;justify-content:flex-end;margin-top:20px}.profile-note{margin:14px 0 0;font-size:12px;color:#94a3b8;line-height:1.7}.profile-save-status{color:#fbbf24;font-size:12px;min-height:18px;margin-top:8px}
+.profile-reward{margin-top:12px;color:#fcd34d;font-weight:700;font-size:14px}.profile-equipped{font-size:11px;color:#b9c8dc;max-width:130px}
+.profile-launch:focus-visible,.profile-rank:focus-visible,.profile-glyphs button:focus-visible,.profile-close:focus-visible,#playerAvatar:focus-visible{outline:3px solid #67e8f9;outline-offset:3px}
+@media(max-width:420px){#profileDialog{padding:16px}.profile-rank{padding:9px;gap:7px}.profile-preview{gap:14px}.profile-top h2{font-size:20px}}
+</style>
+<dialog id="profileDialog" aria-labelledby="profileHeading">
+  <div class="profile-top"><h2 id="profileHeading">プロフィール</h2><button type="button" class="profile-close" onclick="closeProfile()" aria-label="プロフィールを閉じる">×</button></div>
+  <div class="profile-preview"><div id="profilePreview"></div><div><strong id="profileTitle"></strong><div id="profileProgress" class="profile-muted"></div></div></div>
+  <h3 class="profile-heading">アイコンを選ぶ</h3><div id="profileGlyphs" class="profile-glyphs"></div>
+  <h3 class="profile-heading">称号の色を選ぶ</h3><div id="profileRanks" class="profile-ranks"></div>
+  <p class="profile-note">各ボットに初めて勝つと色が解放されます。2勝目から★が増え、7勝で★6個になります。記録は難易度ごとに最大7勝です。通常のCPU戦が対象で、対人戦・引き分け・テストモードは対象外です。</p>
+  <p class="profile-note">選択と撃破記録は、この端末・ブラウザーに保存されます。</p>
+  <div id="profileSaveStatus" class="profile-save-status" role="status" aria-live="polite"></div>
+  <div class="profile-actions"><button type="button" class="profile-launch" onclick="closeProfile()">このプロフィールで遊ぶ</button></div>
+</dialog>
+<script>
+const PROFILE_KEY = 'neoOsero.profile.v1';
+const PROFILE_RANKS = [
+    { id: 'easy', name: '初級', color: '#9ca3af', label: '灰色' },
+    { id: 'medium', name: '中級', color: '#22c55e', label: '緑' },
+    { id: 'hard', name: '上級', color: '#3b82f6', label: '青' },
+    { id: 'sei', name: '聖級', color: '#fbbf24', label: '金' },
+    { id: 'ou', name: '王級', color: '#a855f7', label: '紫' },
+    { id: 'tei', name: '帝級', color: '#ef4444', label: '赤' },
+    { id: 'shin', name: '神級', color: '#f472b6', label: 'ピンク' }
+];
+const PROFILE_GLYPHS = ['P1', '♟', '♞', '⚡', '🔥', '🌙', '👑'];
+function blankProfile() { return { version: 1, wins: Object.fromEntries(PROFILE_RANKS.map(r => [r.id, 0])), selected: null, glyph: 'P1' }; }
+let profileData = blankProfile(), profileStorageError = '', profileRound = null;
+function loadProfile() {
+    try {
+        const raw = localStorage.getItem(PROFILE_KEY);
+        if (raw) {
+            const saved = JSON.parse(raw);
+            if (!saved || saved.version !== 1 || typeof saved.wins !== 'object' || !saved.wins) return;
+            for (const r of PROFILE_RANKS) {
+                const n = saved.wins[r.id];
+                profileData.wins[r.id] = Number.isFinite(n) ? Math.min(7, Math.max(0, Math.floor(n))) : 0;
+            }
+            if (PROFILE_RANKS.some(r => r.id === saved.selected) && profileData.wins[saved.selected] > 0) profileData.selected = saved.selected;
+            if (PROFILE_GLYPHS.includes(saved.glyph)) profileData.glyph = saved.glyph;
+        }
+    } catch (e) { profileStorageError = '保存済みプロフィールを読み込めませんでした。この画面では引き続き遊べます。'; }
+}
+function saveProfile() {
+    try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profileData)); profileStorageError = ''; }
+    catch (e) { profileStorageError = 'ブラウザーに保存できません。今回の選択と記録はページを閉じると失われます。'; }
+    document.getElementById('profileSaveStatus').textContent = profileStorageError;
+    window.dispatchEvent(new Event('profilechange'));
+}
+function makeProfileAvatar(data = profileData) {
+    const rank = PROFILE_RANKS.find(r => r.id === data.selected);
+    const wins = rank ? data.wins[rank.id] : 0, stars = Math.max(0, wins - 1);
+    const avatar = document.createElement('span'); avatar.className = 'profile-avatar';
+    avatar.style.setProperty('--profile-color', rank ? rank.color : '#64748b');
+    avatar.setAttribute('aria-hidden', 'true');
+    const core = document.createElement('span'); core.className = 'profile-core'; core.textContent = data.glyph; avatar.appendChild(core);
+    const orbit = document.createElement('span'); orbit.className = 'profile-orbit';
+    for (let i = 0; i < stars; i++) {
+        const star = document.createElement('span'); star.className = 'profile-star'; star.textContent = '★';
+        const angle = -Math.PI / 2 + i * 2 * Math.PI / stars;
+        star.style.left = `${50 + 43 * Math.cos(angle)}%`; star.style.top = `${50 + 43 * Math.sin(angle)}%`; orbit.appendChild(star);
+    }
+    avatar.appendChild(orbit); return avatar;
+}
+let onlineProfileRole = null, remoteProfileData = null;
+function onlineProfilePayload() {
+    return { selected: profileData.selected, glyph: profileData.glyph,
+        stars: profileData.selected ? Math.max(0, profileData.wins[profileData.selected] - 1) : 0 };
+}
+function receiveOnlineProfile(payload) {
+    if (!payload || typeof payload !== 'object') return;
+    const data = blankProfile();
+    data.glyph = PROFILE_GLYPHS.includes(payload.glyph) ? payload.glyph : 'P2';
+    if (PROFILE_RANKS.some(r => r.id === payload.selected)) {
+        data.selected = payload.selected;
+        data.wins[data.selected] = 1 + (Number.isInteger(payload.stars) ? Math.max(0, Math.min(6, payload.stars)) : 0);
+    }
+    remoteProfileData = data;
+    renderPlayerProfiles();
+}
+function setOnlineProfileRole(role) {
+    onlineProfileRole = role; if (!role) remoteProfileData = null;
+    renderPlayerProfiles();
+}
+function renderPlayerProfiles() {
+    const remote = remoteProfileData || { ...blankProfile(), glyph: 'P2' };
+    const blackData = onlineProfileRole === 'guest' ? remote : profileData;
+    const whiteData = onlineProfileRole === 'guest' ? profileData : remote;
+    const blackLocal = onlineProfileRole !== 'guest';
+    const black = document.getElementById('playerAvatar'), white = document.getElementById('cpuAvatar');
+    function title(data) {
+        const rank = PROFILE_RANKS.find(r => r.id === data.selected);
+        return rank ? `${rank.name}撃破 · ★${data.wins[rank.id] - 1}` : '称号なし';
+    }
+    black.replaceChildren(makeProfileAvatar(blackData)); black.disabled = !blackLocal;
+    black.onclick = blackLocal ? openProfile : null;
+    black.setAttribute('aria-label', `${blackLocal ? 'プロフィールを編集' : '対戦相手のプロフィール'}：${title(blackData)}`);
+    document.getElementById('profileEquipped').textContent = title(blackData);
+    if (onlineProfileRole) {
+        const local = onlineProfileRole === 'guest';
+        white.classList.add('profile-online-avatar'); white.replaceChildren(makeProfileAvatar(whiteData));
+        white.setAttribute('role', local ? 'button' : 'img'); white.tabIndex = local ? 0 : -1;
+        white.setAttribute('aria-label', `${local ? 'プロフィールを編集' : '対戦相手のプロフィール'}：${title(whiteData)}`);
+        white.onclick = local ? openProfile : null;
+        white.onkeydown = local ? event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openProfile(); } } : null;
+        document.getElementById('cpuProfileEquipped').textContent = title(whiteData);
+    } else {
+        white.classList.remove('profile-online-avatar'); white.removeAttribute('role'); white.removeAttribute('tabindex'); white.removeAttribute('aria-label');
+        white.onclick = null; white.onkeydown = null;
+        white.textContent = document.getElementById('gameModeSelect').value === 'vs2p' ? 'P2' : 'CPU';
+        document.getElementById('cpuProfileEquipped').textContent = '';
+    }
+}
+function renderProfile() {
+    const rank = PROFILE_RANKS.find(r => r.id === profileData.selected), wins = rank ? profileData.wins[rank.id] : 0;
+    renderPlayerProfiles();
+    document.getElementById('profilePreview').replaceChildren(makeProfileAvatar());
+    document.getElementById('profileTitle').textContent = rank ? `${rank.name}撃破 / ${rank.label}` : '称号なし';
+    document.getElementById('profileProgress').textContent = rank ? `${wins} / 7勝 · ★${wins - 1} / 6${wins === 7 ? ' · MAX' : ''}` : 'ボットに勝って、最初の色を解放しよう';
+    const glyphs = document.getElementById('profileGlyphs'); glyphs.replaceChildren();
+    for (const glyph of PROFILE_GLYPHS) {
+        const button = document.createElement('button'); button.type = 'button'; button.textContent = glyph;
+        button.setAttribute('aria-label', 'アイコン ' + glyph); button.setAttribute('aria-pressed', String(profileData.glyph === glyph));
+        button.onclick = () => { profileData.glyph = glyph; saveProfile(); renderProfile(); }; glyphs.appendChild(button);
+    }
+    const ranks = document.getElementById('profileRanks'); ranks.replaceChildren();
+    function choice(rank) {
+        const count = rank ? profileData.wins[rank.id] : 0, locked = !!rank && count === 0;
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'profile-rank'; button.disabled = locked;
+        button.style.setProperty('--rank-color', rank ? rank.color : '#64748b');
+        button.setAttribute('aria-pressed', String(profileData.selected === (rank ? rank.id : null)));
+        const swatch = document.createElement('span'); swatch.className = 'profile-swatch'; swatch.setAttribute('aria-hidden', 'true');
+        const text = document.createElement('span'), title = document.createElement('strong'), detail = document.createElement('small');
+        title.textContent = rank ? `${rank.name} · ${rank.label}${locked ? ' 🔒' : ''}` : '称号なし';
+        detail.textContent = rank ? (locked ? `${rank.name}に初勝利で解放` : `${count} / 7勝 · ★${count - 1}${count === 7 ? ' MAX' : ''}`) : 'シンプルなアイコン';
+        text.append(title, detail); button.append(swatch, text);
+        button.onclick = () => { profileData.selected = rank ? rank.id : null; saveProfile(); renderProfile(); }; ranks.appendChild(button);
+    }
+    choice(null); for (const rank of PROFILE_RANKS) choice(rank);
+    document.getElementById('profileSaveStatus').textContent = profileStorageError;
+}
+function openProfile() { renderProfile(); const dialog = document.getElementById('profileDialog'); if (!dialog.open) dialog.showModal(); }
+function closeProfile() { document.getElementById('profileDialog').close(); }
+function profileBeginRound() {
+    profileRound = { level: document.getElementById('aiLevelSelect').value, eligible: gameMode === 'vsCpu' && !isTestMode, finished: false };
+}
+function profileFinishRound(blackCount, whiteCount, naturalEnd = true) {
+    if (!profileRound || profileRound.finished) return;
+    profileRound.finished = true;
+    if (!naturalEnd || !profileRound.eligible || isTestMode || gameMode !== 'vsCpu' || blackCount <= whiteCount) return;
+    const rank = PROFILE_RANKS.find(r => r.id === profileRound.level); if (!rank) return;
+    const old = profileData.wins[rank.id], next = Math.min(7, old + 1); profileData.wins[rank.id] = next;
+    if (profileData.selected === null && old === 0) profileData.selected = rank.id;
+    saveProfile(); renderProfile();
+    const reward = document.getElementById('profileReward');
+    reward.textContent = old === 0 ? `称号解放！ ${rank.name} / ${rank.label} · ★0` : old < 7 ? `${rank.name}撃破！ ★${next - 1}${next === 7 ? ' · MAX' : ''}` : `${rank.name}の称号は★6 · MAXです`;
+    if (profileStorageError) reward.textContent += '（保存できませんでした）';
+}
+loadProfile(); renderProfile();
+</script>
+
     <script>
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         let audioCtx = null;
@@ -1531,6 +1713,8 @@
         }
  
         function initGame() {
+            profileBeginRound();
+            document.getElementById("profileReward").textContent = "";
             itemTurns = { [BLACK]: 0, [WHITE]: 0 };
             itemExpiry = { [BLACK]: { steal: [], warp: [] }, [WHITE]: { steal: [], warp: [] } };
             prevBoardSnap = null;
@@ -1609,6 +1793,7 @@
             renderBoard();
             updateScores();
             updateTurnBadge();
+            renderPlayerProfiles();
             setMessage(gameMode === 'vs2p' ? "2P対戦開始！ P1 (黒) の番です。" : "ゲーム開始！あなたの番です。");
         }
  
@@ -1874,6 +2059,7 @@
             const err = document.getElementById('testPasswordError');
             if (input && input.value === '1145141919810') {
                 isTestMode = true;
+                if (profileRound) profileRound.eligible = false;
                 closeTestModal();
                 grantTestModeSkills();
  
@@ -2081,19 +2267,7 @@
                         poisonTrap[r][c] = false;
                     }
  
-                    const directions = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
-                    for (let [dr, dc] of directions) {
-                        const flipped = getFlippableInDirection(r, c, dr, dc, currentTurn);
-                        for (let disc of flipped) {
-                            board[disc.r][disc.c] = currentTurn;
-                            if (poisonTrap[disc.r][disc.c]) {
-                                triggeredPoison = true;
-                                poisonTrap[disc.r][disc.c] = false;
-                            }
-                            totalFlippedCount++;
-                            playSound('flip');
-                        }
-                    }
+                    // 強奪変換は指定した1枚の色を変えるだけ。奪った駒を起点にした挟み(連鎖反転)は発生しない。
  
                     createExplosion(posX, posY, currentTurn === BLACK ? '#a855f7' : '#ec4899', 25);
                     renderBoard();
@@ -2351,6 +2525,7 @@
                     }
                 }
  
+                profileFinishRound(blackCount, whiteCount, emptyCount === 0 || blackCount === 0 || whiteCount === 0 || (!p1HasNormalMove && !p2HasNormalMove));
                 return true;
             }
             return false;
@@ -2358,6 +2533,8 @@
  
         // ===== 先読みAI (聖級・王級・帝級・神級) =====
         // depth: 最大の読み深さ / ms: 1手の持ち時間 / endgame: 残りこの数以下で最後まで全読み / poisonPen: 毒盤を踏む手の減点
+        // 帝級・神級の持ち時間(合計 帝級4秒 / 神級7秒)。skill=スキルを使うかの判断、normal=通常手の深読み。
+        const HYBRID_MS = { tei: { skill: 1500, normal: 2500 }, shin: { skill: 2800, normal: 4200 } };
         const SEARCH_TIERS = {
             sei:  { depth: 3,  ms: 500,  endgame: 0,  poisonPen: 40 },
             ou:   { depth: 5,  ms: 900,  endgame: 8,  poisonPen: 60 },
@@ -2425,7 +2602,7 @@
         }
  
         // 現在の盤面から、player(通常はWHITE)の最善手を先読みで選ぶ。rootMovesはgetValidMoves()の結果。
-        function searchBestMove(level, rootMoves, me = WHITE) {
+        function searchBestMove(level, rootMoves, me = WHITE, msOverride) {
             const cfg = SEARCH_TIERS[level];
             const opp = me === BLACK ? WHITE : BLACK;
             const aiInfo = getAiBoardInfo();
@@ -2439,7 +2616,7 @@
                 }
             }
             let nodes = 0, timedOut = false;
-            const deadline = performance.now() + cfg.ms;
+            const deadline = performance.now() + (msOverride || cfg.ms);
  
             function flipsAt(idx, p) {
                 const q = p === BLACK ? WHITE : BLACK;
@@ -2726,8 +2903,7 @@
                 [n.poison[a.source], n.poison[a.target]] = [n.poison[a.target], n.poison[a.source]];
                 for (const i of skillAiFlips(n, a.target, p)) flip(i);
             } else if (a.skill === 'steal') {
-                flip(a.target);
-                for (const i of skillAiFlips(n, a.target, p)) flip(i);
+                flip(a.target);   // 連鎖反転なし。指定した1枚の色が変わるだけ
             } else if (a.move !== undefined) {
                 const flips = skillAiFlips(n, a.move, p);
                 n.b[a.move] = p;
@@ -2779,9 +2955,10 @@
             }
             return actions.length ? actions : [{ pass: true }];
         }
-        function chooseStrategicCpuAction(level, state = skillAiState()) {
+        function chooseStrategicCpuAction(level, state = skillAiState(), msOverride) {
             const info = getAiBoardInfo(), cfg = level === 'shin'
                 ? { ms: 6000, depth: 8, width: 32 } : { ms: 3000, depth: 6, width: 20 };
+            if (msOverride) cfg.ms = msOverride;
             const deadline = performance.now() + cfg.ms, timeout = {};
             const actor = s => s.controller === null ? s.p : s.controller;
             const cache = new Map();
@@ -2863,12 +3040,25 @@
             const levelSelect = document.getElementById('aiLevelSelect');
             const level = levelSelect ? levelSelect.value : 'medium';
             if (level === 'tei' || level === 'shin') {
-                const hasSkills = Object.keys(SKILL_AI_COST).some(skill =>
-                    playerSkills[skill] > 0 || cpuSkills[skill] > 0);
+                // CPU自身がスキルを持っていなければ、スキルを使う選択肢がない。相手のスキルの有無は関係ない。
+                const cpuHasSkills = Object.keys(SKILL_AI_COST).some(skill => cpuSkills[skill] > 0);
                 const moves = getValidMoves(WHITE);
-                // スキルがない局面は従来どおり最大8/12手の探索を使う。
-                const move = !hasSkills && moves.length ? searchBestMove(level, moves, WHITE) : null;
-                await runStrategicCpuAction(move ? { move: move.r * 8 + move.c } : chooseStrategicCpuAction(level));
+                const budget = HYBRID_MS[level];
+                let action;
+                if (!cpuHasSkills && moves.length) {
+                    // CPUがスキルを持たない局面は、通常探索(帝級8手/神級12手)に全時間を使う。
+                    const move = searchBestMove(level, moves, WHITE, budget.skill + budget.normal);
+                    action = { move: move.r * 8 + move.c };
+                } else {
+                    // 1) スキル込みの探索で「スキルを使うか」を決める。
+                    action = chooseStrategicCpuAction(level, skillAiState(), budget.skill);
+                    // 2) スキルを使わず通常手になったときは、その手を捨てて通常探索で深く選び直す。
+                    if (!action.skill && !action.pass && action.move !== undefined && moves.length) {
+                        const move = searchBestMove(level, moves, WHITE, budget.normal);
+                        action = { move: move.r * 8 + move.c };
+                    }
+                }
+                await runStrategicCpuAction(action);
                 return;
             }
             const validMoves = getValidMoves(WHITE);
@@ -3306,6 +3496,7 @@
       currentStage, itemTurns, itemExpiry, msg: lastMsg } }), 30);
   };
   const isHost = () => netRole === 'host';
+  window.addEventListener('profilechange', () => { if (netRole) { renderPlayerProfiles(); send({ t: 'profile', profile: onlineProfilePayload() }); } });
  
   // 自分の番でないときは操作できないようにする
   function lockUI() {
@@ -3339,7 +3530,7 @@
     if (isHost() && actor() !== BLACK) return;
     return O.select(s);
   };
-  window.initGame = () => { O.init(); if (isHost()) { send({ t: 'n' }); sendState(); } };
+  window.initGame = () => { O.init(); renderPlayerProfiles(); if (isHost()) { send({ t: 'n' }); sendState(); } };
   window.resetGame = () => netRole === 'guest' ? send({ t: 'r' }) : O.reset();
   window.checkGameOver = f => {
     const r = O.over(f);
@@ -3357,7 +3548,7 @@
        playerFlipCount, cpuFlipCount, playerSkills, cpuSkills, currentStage, itemTurns, itemExpiry } = s);
     lastMsg = s.msg; gameMode = 'vs2p';
     $('stageSelect').value = currentStage;
-    O.setMsg(s.msg); O.render(); O.scores(); O.badge(); O.skillUI(); lockUI();
+    O.setMsg(s.msg); O.render(); O.scores(); O.badge(); O.skillUI(); lockUI(); renderPlayerProfiles();
   }
   function showOver(m) {
     $('modalTitle').innerText = m.title; $('modalReason').innerText = m.reason;
@@ -3369,6 +3560,7 @@
  
   function onData(m) {
     if (!m || typeof m !== 'object') return;
+    if (m.t === 'profile') { receiveOnlineProfile(m.profile); return; }
     if (isHost()) {
       if (m.t === 'c' && actor() === WHITE && Number.isInteger(m.r) && Number.isInteger(m.c)) O.click(m.r, m.c, null);
       else if (m.t === 'k' && actor() === WHITE && SK.includes(m.s)) O.select(m.s);
@@ -3391,6 +3583,7 @@
   }
   function leave() {
     netRole = null; want = null; conn = null;
+    setOnlineProfileRole(null);
     if (peer) { try { peer.destroy(); } catch (e) {} peer = null; }
     ['gameModeSelect','aiLevelSelect','stageSelect'].forEach(i => { $(i).disabled = false; });
     $('netRoom').classList.add('hidden');
@@ -3399,6 +3592,8 @@
   function wire(c) {
     c.on('open', () => {
       netRole = want; gameMode = 'vs2p'; $('gameModeSelect').value = 'vs2p';
+      setOnlineProfileRole(netRole);
+      send({ t: 'profile', profile: onlineProfilePayload() });
       if (isTestMode) exitTestMode();
       ['gameModeSelect','aiLevelSelect'].forEach(i => { $(i).disabled = true; });
       if (netRole === 'guest') $('stageSelect').disabled = true;
