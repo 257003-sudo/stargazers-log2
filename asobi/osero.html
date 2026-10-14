@@ -873,7 +873,7 @@
                             相手のスキル攻撃によって駒を裏返されたり奪われたりした場合、チャージ倍率にさらに+0.5のボーナスが付与されます。
                         </li>
                         <li><span class="inline-block bg-yellow-600/30 text-yellow-300 px-1.5 py-0.5 rounded text-xs font-bold mr-1 border border-yellow-600/50">排出率の重み付け</span>
-                            バランス調整のため、スキルの種類によって獲得確率が異なります（シールド・毒盤・ワープ: 各20%、爆発配置・消滅: 各15%、強奪変換: 10%）。
+                            バランス調整のため、スキルの種類によって獲得確率が異なります（爆発配置: 20%、シールド: 25%、毒盤: 20%、ワープ: 10%、強奪変換: 10%、消滅: 15%）。
                         </li>
                     </ul>
                 </section>
@@ -933,7 +933,7 @@
                             <h4 class="font-bold text-purple-400 text-sm sm:text-base mb-1.5">🔄 5. 強奪変換（Steal Convert）</h4>
                             <div class="space-y-1.5 text-xs sm:text-[13px]">
                                 <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">概要</span>敵コマ直接強奪</p>
-                                <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">効果詳細</span>盤面上にある相手の駒を1つ直接指定し、自分の色へ奪い取って直接変換します。奪った位置からさらに周囲の相手駒を挟める場合は、連鎖反転が発生します。</p>
+                                <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">効果詳細</span>盤面上にある相手の駒を1つ直接指定し、自分の色へ奪い取って直接変換します。周囲に挟みが成立しても、追加の反転は発生しません。</p>
                                 <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">制限</span>四隅（角）にある駒やシールド駒は指定できません。</p>
                                 <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">戦術活用</span>相手の連鎖やラインの核となっている重要な駒をダイレクトに奪い取り、敵の戦術を根本から崩壊させられます。</p>
                             </div>
@@ -1615,10 +1615,10 @@ loadProfile(); renderProfile();
 
         function getRandomSkill() {
             const pool = [
-                { type: 'bomb', weight: 15 },
-                { type: 'shield', weight: 20 },
+                { type: 'bomb', weight: 20 },
+                { type: 'shield', weight: 25 },
                 { type: 'poison', weight: 20 },
-                { type: 'warp', weight: 20 },
+                { type: 'warp', weight: 10 },
                 { type: 'steal', weight: 10 },
                 { type: 'vanish', weight: 15 }
             ];
@@ -2734,12 +2734,6 @@ loadProfile(); renderProfile();
                         poisonTrap[r][c] = false;
                     }
 
-                    const directions = DIRS8;
-                    renderBoard();
-                    updateScores();
-                    await sleep(480);
-                    { const _all = []; for (let [dr, dc] of directions) { _all.push(...getFlippableInDirection(r, c, dr, dc, currentTurn)); } await flipSimul(r, c, _all, currentTurn, (disc) => { if (poisonTrap[disc.r][disc.c]) { triggeredPoison = true; poisonTrap[disc.r][disc.c] = false; } totalFlippedCount++; }); }
-
                     createExplosion(posX, posY, currentTurn === BLACK ? '#a855f7' : '#ec4899', 25);
                     renderBoard();
                     updateScores();
@@ -3156,7 +3150,6 @@ loadProfile(); renderProfile();
             if (level !== 'easy' && (cpuSkills.steal || 0) > 0) {
                 const pick = cpuPickSteal(level, validMoves);
                 if (pick) {
-                    const dirs8s = DIRS8;
                     consumeSkill(WHITE, 'steal');
                     await triggerSkillCutin('steal', WHITE);
                     playSound('bomb');
@@ -3167,9 +3160,6 @@ loadProfile(); renderProfile();
                     if (poisonTrap[pick.r][pick.c]) { triggeredPoison = true; poisonTrap[pick.r][pick.c] = false; }
                     renderBoard();
                     updateScores();
-                    await sleep(480);
-                    { const _all = []; for (let [dr, dc] of dirs8s) { _all.push(...getFlippableInDirection(pick.r, pick.c, dr, dc, WHITE)); }
-                      await flipSimul(pick.r, pick.c, _all, WHITE, (disc) => { if (poisonTrap[disc.r][disc.c]) { triggeredPoison = true; poisonTrap[disc.r][disc.c] = false; } totalFlippedCount++; }); }
                     createExplosion(window.innerWidth / 2, window.innerHeight / 2, '#ec4899', 25);
                     renderBoard();
                     updateScores();
@@ -3893,12 +3883,12 @@ const INIT=['........','........','........','...WB...','...BW...','........','.
 const T=[
 {t:'オセロの基本ルール',h:'<p>・あなたは<b>黒</b>、相手は<b>白</b>。交互に1枚ずつ置きます。</p><p>・相手の駒を自分の駒で<b>挟む</b>と、挟んだ駒が全部裏返ります。</p><p>・置ける場所がなければパス。盤面が埋まる（双方置けない）と終了し、<b>駒が多い方の勝ち</b>。</p><p>・<b>四隅</b>は一度取ると裏返されない最強のマス。逆に角の斜め隣（Xマス）は角を取られやすく不利です。</p>',b:INIT},
 {t:'まず1手打ってみよう',h:'<p>光っているマスが「置ける場所」です。タップして置いてみましょう。</p>',b:INIT,p:[{u:'move',q:'光るマスをタップ！',ok:'白を挟んで黒に裏返りました。これが基本の動きです。'}],ok:'白を挟んで黒に裏返りました。これが基本の動きです。'},
-{t:'スキルの入手方法',h:'<p>・<b>相手に駒を裏返される</b>たびに1pt たまり、<b>15pt</b>ごとにランダムなスキルを1つ獲得。</p><p>・駒数で負けているほどチャージ倍率UP（最大3.0倍）。逆転しやすい仕組みです。</p><p>・相手のスキルで裏返されると倍率にさらに+0.5。</p><p>・出やすさ：シールド・毒盤・ワープ各20%、爆発配置・消滅各15%、強奪変換10%。</p><p>・使うときは右側（スマホは下）のスキルボタンを選んでから盤面をタップします。</p>'},
+{t:'スキルの入手方法',h:'<p>・<b>相手に駒を裏返される</b>たびに1pt たまり、<b>15pt</b>ごとにランダムなスキルを1つ獲得。</p><p>・駒数で負けているほどチャージ倍率UP（最大3.0倍）。逆転しやすい仕組みです。</p><p>・相手のスキルで裏返されると倍率にさらに+0.5。</p><p>・出やすさ：爆発配置20%、シールド25%、毒盤20%、ワープ10%、強奪変換10%、消滅15%。</p><p>・使うときは右側（スマホは下）のスキルボタンを選んでから盤面をタップします。</p>'},
 {t:'💣 爆発配置',h:'<p>置いたマスを中心に<b>周囲3×3の相手駒をまとめて自分の色</b>に。シールド駒は巻き込めません。</p><p><b>使いどころ：</b>相手の駒が固まっている中盤〜終盤の逆転。</p>',b:['........','........','..WW....','..WWWB..','..WW....','........','........','........'],p:[{u:'bomb',q:'光るマスに爆発配置！',ok:''}],ok:'通常は挟んだ列だけですが、斜めや上下の白もまとめて奪えました。'},
 {t:'🛡️ シールド',h:'<p>置いた駒が<b>金色のシールド駒</b>になり、以後どんな方法でも裏返りません。</p><p><b>使いどころ：</b>角や、絶対に守りたい要所。</p><p>置いたあと、白が挟みにきたらどうなるか見てみましょう。</p>',b:['........','........','........','...WBW..','........','........','........','........'],p:[{u:'shield',ts:[[3,2]],q:'光るマスにシールド駒を置こう',ok:'金色のシールド駒を置きました！'},{x:[3,1],msg:'⚪ 白が左端から挟もうとすると… ✕ 置けません！'}],ok:'シールド駒を挟む位置には置けません！この駒は取られません。'},
 {t:'🧪 毒盤',h:'<p>自分の駒に毒を仕込みます。相手がその駒を裏返すと<b>麻痺して次の1ターンがスキップ</b>（麻痺側はチャージ+3）。</p><p>流れ：①毒を仕込む →②自分が1手 →③白が毒駒を裏返す →④白は麻痺で休み →⑤<b>こちらが2連続で打てる！</b></p><p><b>使いどころ：</b>相手が取りたがる駒・列の要になる駒。</p>',b:['........','........','........','...BW...','...WB...','........','........','........'],p:[{u:'poison',ts:[[3,3]],q:'①毒を仕込む黒駒（光る駒）をタップ',ok:'☠を仕込みました！'},{u:'move',ts:[[3,5]],q:'②普通に1手打つ（光るマス）',ok:'白の番です…'},{a:[2,3],msg:'⚪ 白が毒駒を裏返した！ → ☠ 麻痺！'},{skip:1,msg:'😵 白は麻痺で次の1ターンをスキップ！'},{u:'move',ts:[[4,2]],q:'③黒の1回目（光るマス）',ok:'白は休みなので、もう一度あなたの番！'},{u:'move',ts:[[1,3]],q:'④黒の2連続目！（光るマス）',ok:''}],ok:'白が休んでいる間に、2回連続で打てました！'},
 {t:'🌀 ワープ',h:'<p>自分の駒と<b>周囲2マス以内の相手の駒</b>の位置を入れ替えます。入れ替え後に挟める駒は連鎖で裏返ります（外周・四隅・シールド駒は対象外）。</p><p><b>使いどころ：</b>陣形を崩したい時、駒を安全な場所へ動かしたい時。うまく使うと一手で大逆転も！</p>',b:['........','........','........','.BBWW...','.....W..','......B.','........','........'],p:[{u:'warp',ts:[[3,2]],ts2:[[3,4]],q:'①入れ替える黒駒（光る駒）→②入れ替える白駒をタップ',ok:''}],ok:'位置を入れ替えただけで、白が全部黒になりました！'},
-{t:'🔄 強奪変換',h:'<p>相手の駒を<b>直接1つ奪って</b>自分の色にします。奪った駒から挟める駒は連鎖で裏返ります（四隅・シールド駒は不可）。</p><p><b>使いどころ：</b>相手の列の要になっている駒を崩す時。</p>',b:['........','........','........','.BWWWB..','........','........','........','........'],p:[{u:'steal',q:'奪いたい白をタップ（真ん中がおすすめ）',ok:''}],ok:'奪った駒を起点に、周りも連鎖して裏返りました。'},
+{t:'🔄 強奪変換',h:'<p>相手の駒を<b>直接1つ奪って</b>自分の色にします。変わるのは選んだ1枚だけです（四隅・シールド駒は不可）。</p><p><b>使いどころ：</b>相手の列の要になっている駒を崩す時。</p>',b:['........','........','........','.BWWWB..','........','........','........','........'],p:[{u:'steal',q:'奪いたい白をタップ（真ん中がおすすめ）',ok:''}],ok:'選んだ1枚だけを自分の駒に変換しました。'},
 {t:'👻 消滅',h:'<p>自分の駒を1つ消して空きマスに戻します。消したあとはそのまま<b>1手打てます</b>。</p><p><b>使いどころ：</b>相手に角を取らせる原因の駒を消して守る時や、盤面調整。</p><p>左上の黒(X打ち)は、白に角を取られそうです。</p>',b:['........','.B......','..W.....','........','..BW....','........','........','........'],p:[{u:'vanish',ts:[[1,1]],q:'①角を取られそうな黒（光る駒）をタップして消す',ok:'駒が消えて、白は角を取れなくなりました！'},{u:'move',ts:[[4,4]],q:'②続けて1手打てます（光るマス）',ok:''}],ok:'角の危険を消してから、そのまま1手打てました！'},
 {t:'👹 INMUPOWER',h:'<p>野獣帝ステージ限定（？マスで入手）。通常の配置と同時に発動し、<b>次の相手の手番を乗っ取って</b>相手の合法手から1手を選んで打たせます。</p><p>流れ：①自分が1手(発動) →②<b>白の駒を自分で置く</b> →③自分がまた置く。</p><p><b>使いどころ：</b>相手にXマスを打たせて、角を取る時。</p>',b:['........','........','..B.....','...W....','....B...','.....W..','........','........'],p:[{u:'move',ts:[[6,6]],q:'①INMUPOWERを発動しながら1手（光るマス）',ok:'発動！次は白の手番を支配します'},{u:'inmuW',ts:[[1,1]],q:'②白の駒を置く番！角の斜め隣（左上の光るマス）を打たせよう',ok:'白に悪手を打たせました！'},{u:'move',ts:[[0,0]],q:'③自分の番！角を取ろう（光るマス）',ok:''}],ok:'白に悪手を打たせて、角を取って一気に黒に染まりました！'},
 {t:'ステージと？マス',h:'<p>・<b>ブラックホール</b>：置けない障害物あり。</p><p>・<b>十字型</b>：四隅が欠けた盤面。</p><p>・<b>チャージゾーン</b>：ボーナスのチャージマスがある盤面。</p><p>・<b>野獣帝</b>：「？」マス（はてなボックス）を踏むとスキル獲得などの効果が発動。</p><p class="pt-2 text-cyan-300">準備完了です！左下の「？」でいつでもここに戻れます。詳細は「システム＆スキル解説」にも載っています。</p>'}
@@ -3927,7 +3917,7 @@ if(m==='bomb')for(let a=r-1;a<=r+1;a++)for(let b=c-1;b<=c+1;b++)if(a>=0&&a<8&&b>
 if(m==='shield')S.sh[r][c]=true}
 else if(m==='poison')S.po[r][c]=true;
 else if(m==='vanish')S.g[r][c]=0;
-else if(m==='steal'){setc(r,c,1);fl(r,c,1)}
+else if(m==='steal'){setc(r,c,1)}
 else if(m==='warp'){if(!S.src){S.src=[r,c];draw();return}const[a,b]=S.src;S.src=null;setc(a,b,2);setc(r,c,1);fl(r,c,1)}
 adv(ph.ok||'')}
 function adv(msg){S.p++;
@@ -4423,10 +4413,8 @@ function cpuPickSteal(level, moves) {
         if (board[r][c] !== BLACK || shields[r][c] || isCorner(r, c)) continue;
         const nb = aiCopy(board);
         nb[r][c] = WHITE;
-        const fl = aiFlips(nb, shields, r, c, WHITE);
-        fl.forEach(([a, b]) => nb[a][b] = WHITE);
         let v = aiEval(nb, shields, WHITE);
-        if (poisonTrap[r][c] || fl.some(d => poisonTrap[d[0]][d[1]])) v -= 60;
+        if (poisonTrap[r][c]) v -= 60;
         if (v > bv) { bv = v; best = { r, c }; }
     }
     const margin = moves.length === 0 ? 5 : (hard ? 32 : 52);
@@ -4743,7 +4731,7 @@ function cpuVanishTarget(list) {
                     * Math.min(1, remaining / 5) * (1 - Math.pow(0.65, count)) / 0.35;
             }
             // 新規アイテムの種類を捏造せず、平均価値だけを評価へ反映する。
-            value += ((s.expectedItems[p] || 0) + (s.charge[p] || 0) / 15) * 17 * Math.min(1, empty / 16);
+            value += ((s.expectedItems[p] || 0) + (s.charge[p] || 0) / 15) * 17.5 * Math.min(1, empty / 16);
             return value;
         }
         function skillAiEvaluate(s, info) {
