@@ -1109,7 +1109,7 @@ function saveProfile() {
 function makeProfileAvatar(data = profileData) {
     const rank = PROFILE_RANKS.find(r => r.id === data.selected);
     const wins = rank ? data.wins[rank.id] : 0, stars = Math.max(0, wins - 1);
-    const avatar = document.createElement('span'); avatar.className = 'profile-avatar';
+    const avatar = document.createElement('span'); avatar.className = 'profile-avatar' + (rank && wins > 0 ? ' profile-titled' : '');
     avatar.style.setProperty('--profile-color', rank ? rank.color : '#64748b');
     avatar.setAttribute('aria-hidden', 'true');
     const core = document.createElement('span'); core.className = 'profile-core'; if (validProfilePhoto(data.photo)) {
@@ -6355,5 +6355,35 @@ async function maybeSpinThrow(r, c) {
     window.isMysteryStage = () => currentStage === 'yajuu' || (currentStage === 'custom' && /q/.test(stageCells));
 })();
 </script>
+<style id="profile-polish">
+/* 写真と称号を見やすく。★のスタイル・回転・個数は元の仕様を保持。 */
+#playerAvatar, #cpuAvatar.profile-online-avatar { width:60px; height:60px; }
+.profile-avatar { width:112px; height:112px; }
+#playerAvatar .profile-avatar, #cpuAvatar .profile-avatar { width:100%; height:100%; }
+#playerAvatar .profile-core, #cpuAvatar .profile-core { inset:15%; font-size:24px; }
+#playerAvatar .profile-titled::before, #cpuAvatar .profile-titled::before { inset:11%; }
+@media(min-width:640px) {
+ #playerAvatar, #cpuAvatar.profile-online-avatar { width:72px; height:72px; }
+}
+.profile-avatar.profile-titled::before {
+ content:""; position:absolute; inset:15%; border-radius:50%; pointer-events:none;
+ border:1px solid var(--profile-color);
+ box-shadow:0 0 10px var(--profile-color),0 0 22px color-mix(in srgb,var(--profile-color) 45%,transparent);
+}
+.profile-titled .profile-core {
+ border-color:var(--profile-color);
+ box-shadow:0 0 0 1px color-mix(in srgb,var(--profile-color) 55%,white),
+ 0 0 14px color-mix(in srgb,var(--profile-color) 65%,transparent),
+ inset 0 0 12px color-mix(in srgb,var(--profile-color) 30%,transparent);
+}
+.profile-titled .profile-core::after {
+ content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+ background:linear-gradient(135deg,#ffffff55 0%,#ffffff10 25%,transparent 45%,transparent 70%,#ffffff25 100%);
+ box-shadow:inset 0 0 0 1px #ffffff45;
+}
+.profile-rank[aria-pressed="true"]:not(:first-child) {
+ box-shadow:0 0 14px color-mix(in srgb,var(--rank-color) 35%,transparent),inset 0 1px 0 #ffffff25;
+}
+</style>
 </body>
 </html>
