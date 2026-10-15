@@ -9,3 +9,16 @@ textarea{box-sizing:border-box;width:100%;padding:12px;margin:6px 0;border:1px s
 #eventForm{margin:12px 0 24px}
 #manualEventStatus{white-space:pre-wrap;overflow-wrap:anywhere}
 button:disabled{opacity:.6;cursor:wait}
+
+[hidden]{display:none!important}
+#appNavigation{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+#appNavigation button{width:auto;flex:1 1 90px;margin:0;padding:10px;font-size:.9rem}
+#appNavigation .logout{margin:0}
+#appNavigation [aria-current="page"]{outline:3px solid #163e99;outline-offset:2px}
+.home-menu{display:grid;gap:12px;margin-top:24px}
+.home-menu button{text-align:left;padding:18px;font-weight:bold}
+.home-menu span{display:block;font-size:.85rem;font-weight:normal;margin-top:6px}
+.calendar-context{background:white;padding:18px;border:1px solid #ddd;border-radius:14px;margin-bottom:16px}
+.calendar-context select{width:100%;padding:10px;margin-top:8px}
+.back-home{margin-top:24px;background:#526174}
+#sessionMessage,#chatStatus{white-space:pre-wrap;overflow-wrap:anywhere}

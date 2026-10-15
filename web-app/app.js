@@ -7,37 +7,66 @@ let token = localStorage.getItem("token");
 let username = localStorage.getItem("username") || "";
 let calendarLoadId = 0;
 let eventLoadId = 0;
+let sessionVerified = false;
+let sessionCheckId = 0;
+let authGeneration = 0;
+const protectedScreens = ["home", "chatScreen", "calendarScreen", "aiScreen"];
 
 // -------------------------
 // 画面切り替え
 // -------------------------
 
-function show(id) {
-    const screens = ["login", "register", "home"];
-
+function show(id, updateHistory = true) {
+    const screens = ["login", "register", "sessionCheck", ...protectedScreens];
+    if (!screens.includes(id)) id = sessionVerified ? "home" : "login";
+    if (protectedScreens.includes(id) && !sessionVerified) id = "login";
+    if (sessionVerified && (id === "login" || id === "register")) id = "home";
     for (const screen of screens) {
         document.getElementById(screen).hidden = screen !== id;
     }
+    const insideApp = sessionVerified && protectedScreens.includes(id);
+    document.getElementById("appNavigation").hidden = !insideApp;
+    document.getElementById("calendarContext").hidden = !insideApp
+        || !["calendarScreen", "aiScreen"].includes(id);
+    document.querySelectorAll("[data-screen]").forEach(button => {
+        if (button.dataset.screen === id) button.setAttribute("aria-current", "page");
+        else button.removeAttribute("aria-current");
+    });
+    if (updateHistory && location.hash !== "#" + id) {
+        history.pushState(null, "", "#" + id);
+    }
+    const heading = document.querySelector(`#${id} h1`);
+    if (heading) {
+        heading.setAttribute("tabindex", "-1");
+        heading.focus({preventScroll: true});
+    }
+    window.scrollTo(0, 0);
 }
+
+window.addEventListener("popstate", () => show(location.hash.slice(1) || "home", false));
+window.addEventListener("hashchange", () => show(location.hash.slice(1) || "home", false));
 
 // -------------------------
 // FastAPI通信
 // -------------------------
 
 async function request(path, options = {}) {
-
+    const sentAuthorization = options.headers && options.headers.Authorization;
+    const generation = authGeneration;
     const response = await fetch(BASE_URL + path, options);
-
     const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-        throw new Error(
-            data.detail ||
-            data.message ||
-            `HTTP ${response.status}`
-        );
+    if (sentAuthorization && generation !== authGeneration) {
+        throw new Error("ログイン状態が変更されたため、処理を中止しました");
     }
-
+    if (!response.ok) {
+        if (response.status === 401 && sentAuthorization && token
+            && sentAuthorization === `Bearer ${token}`) {
+            logout("ログインの有効期限が切れたか、ログイン情報が無効です。再ログインしてください。");
+        }
+        const error = new Error(data.detail || data.message || `HTTP ${response.status}`);
+        error.status = response.status;
+        throw error;
+    }
     return data;
 }
 
@@ -71,7 +100,7 @@ async function login() {
 
     try {
 
-        username = userInput.value;
+        const enteredUsername = userInput.value;
 
         const data = await request(
             "/login",
@@ -83,7 +112,7 @@ async function login() {
                 },
 
                 body: JSON.stringify({
-                    username: username,
+                    username: enteredUsername,
                     password: passwordInput.value
                 })
             }
@@ -95,6 +124,11 @@ async function login() {
         if (data.token) {
 
             token = data.token;
+            username = data.username || enteredUsername;
+            authGeneration++;
+            sessionCheckId++;
+            sessionVerified = true;
+            passwordInput.value = "";
 
             localStorage.setItem(
                 "token",
@@ -174,7 +208,7 @@ async function sendMessage() {
         document.getElementById("chat");
 
     const status =
-        document.getElementById("status");
+        document.getElementById("chatStatus");
 
     try {
 
@@ -213,7 +247,7 @@ async function getMessages() {
         document.getElementById("messages");
 
     const status =
-        document.getElementById("status");
+        document.getElementById("chatStatus");
 
     try {
 
@@ -395,7 +429,10 @@ async function createEvent() {
 // ログアウト
 // -------------------------
 
-function logout() {
+function logout(message = "") {
+    sessionVerified = false;
+    sessionCheckId++;
+    authGeneration++;
 
     localStorage.removeItem("token");
     localStorage.removeItem("username");
@@ -418,6 +455,11 @@ function logout() {
         "pass"
     ).value = "";
 
+    document.getElementById("messages").replaceChildren();
+    document.getElementById("extractResult").replaceChildren();
+    for (const id of ["chat", "eventText", "rpass"]) document.getElementById(id).value = "";
+    for (const id of ["status", "chatStatus", "registerMsg", "who"]) document.getElementById(id).textContent = "";
+    document.getElementById("loginMsg").textContent = message;
     show("login");
 }
 
@@ -425,19 +467,36 @@ function logout() {
 // ページ起動時
 // -------------------------
 
-if (token) {
-
-    document.getElementById(
-        "who"
-    ).textContent = username;
-
-    show("home");
-    loadCalendars();
-
-} else {
-
-    show("login");
+async function verifySession() {
+    const checkId = ++sessionCheckId;
+    if (!token) {
+        show(location.hash === "#register" ? "register" : "login");
+        return;
+    }
+    const desiredScreen = location.hash.slice(1);
+    sessionVerified = false;
+    show("sessionCheck", false);
+    document.getElementById("sessionMessage").textContent = "サーバーにログイン状態を確認しています...";
+    document.getElementById("sessionRetry").hidden = true;
+    try {
+        const data = await request("/session", {headers: auth()});
+        if (checkId !== sessionCheckId || !token) return;
+        username = data.username || "";
+        localStorage.setItem("username", username);
+        sessionVerified = true;
+        document.getElementById("who").textContent = username;
+        show(protectedScreens.includes(desiredScreen) ? desiredScreen : "home");
+        await loadCalendars();
+    } catch (error) {
+        if (checkId !== sessionCheckId || !token) return;
+        // Network/server errors do not establish that a token has expired.
+        document.getElementById("sessionMessage").textContent =
+            "ログイン状態を確認できませんでした。サーバーの起動・接続を確認して再接続してください。";
+        document.getElementById("sessionRetry").hidden = false;
+    }
 }
+
+verifySession();
 
 async function extractEvents() {
     const text = document.getElementById("eventText").value.trim();
