@@ -59,7 +59,7 @@
             使用するカレンダー：
         </label>
 
-        <select id="calendarSelect">
+        <select id="calendarSelect" onchange="loadEvents()">
             <option value="">
                 カレンダーを選択してください
             </option>
@@ -72,6 +72,11 @@
         <button onclick="createEvent()">イベント作成</button>
 
         <p id="status"></p>
+
+        <h3>予定一覧</h3>
+        <button onclick="loadEvents()">予定一覧を更新</button>
+        <p id="eventsStatus" role="status">カレンダーを選択してください</p>
+        <ul id="eventList"></ul>
 
         <!-- AI予定抽出 -->
         <h2>AI予定抽出</h2>

@@ -7,6 +7,7 @@ const CALENDAR_ID = "zQbayVLgx9HNvJ9c0vBW";
 let token = localStorage.getItem("token");
 let username = localStorage.getItem("username") || "";
 let calendarLoadId = 0;
+let eventLoadId = 0;
 
 // -------------------------
 // 画面切り替え
@@ -395,6 +396,11 @@ function logout() {
 
     token = null;
     username = "";
+    calendarLoadId++;
+    eventLoadId++;
+    document.getElementById("calendarSelect").replaceChildren(new Option("カレンダーを選択してください", ""));
+    document.getElementById("eventList").replaceChildren();
+    document.getElementById("eventsStatus").textContent = "カレンダーを選択してください";
 
     document.getElementById(
         "user"
@@ -527,6 +533,9 @@ registerButton.onclick = async () => {
 
         alert("予定を登録しました！ ID: " + data.eventId);
         registerButton.textContent = "登録済み";
+        if (document.getElementById("calendarSelect").value === calendarId) {
+            await loadEvents();
+        }
 
     } catch (error) {
         alert("登録エラー：" + error.message);
@@ -552,6 +561,10 @@ async function loadCalendars(preferredId) {
     const selectedId = preferredId === undefined ? select.value : preferredId;
     const requestToken = token;
     const requestId = ++calendarLoadId;
+    // Invalidate pending event requests while calendar membership is refreshed.
+    eventLoadId++;
+    document.getElementById("eventList").replaceChildren();
+    document.getElementById("eventsStatus").textContent = "カレンダー一覧を取得しています...";
     status.textContent = "カレンダー一覧を取得しています...";
 
     try {
@@ -581,12 +594,14 @@ async function loadCalendars(preferredId) {
             ? selectedId : "";
         status.textContent =
             data.calendars.length + "件のカレンダーを取得しました";
+        await loadEvents();
         return true;
 
     } catch (error) {
         if (token !== requestToken || requestId !== calendarLoadId) return false;
         status.textContent =
             "カレンダー一覧取得エラー：" + error.message;
+        document.getElementById("eventsStatus").textContent = "カレンダー一覧の取得に失敗しました。再度更新してください。";
         return false;
     }
 }
@@ -603,3 +618,62 @@ function getSelectedCalendarId() {
     return calendarId;
 }
 
+
+
+function formatEventDate(value) {
+    if (!value) return "日時未設定";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "日時不明";
+    return new Intl.DateTimeFormat("ja-JP", {
+        timeZone: "Asia/Tokyo",
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+    }).format(date);
+}
+
+async function loadEvents() {
+    const calendarId = document.getElementById("calendarSelect").value;
+    const list = document.getElementById("eventList");
+    const status = document.getElementById("eventsStatus");
+    const requestId = ++eventLoadId;
+    const requestToken = token;
+    const isCurrent = () => requestId === eventLoadId && token === requestToken
+        && document.getElementById("calendarSelect").value === calendarId;
+
+    list.replaceChildren();
+    if (!calendarId) {
+        status.textContent = "カレンダーを選択してください";
+        return;
+    }
+    status.textContent = "予定を取得しています...";
+    try {
+        const data = await request(`/calendars/${encodeURIComponent(calendarId)}/events`, {
+            headers: auth()
+        });
+        if (!isCurrent()) return;
+        if (!Array.isArray(data.events)) throw new Error("予定一覧の応答形式が不正です");
+
+        for (const event of data.events) {
+            const item = document.createElement("li");
+            const title = document.createElement("strong");
+            title.textContent = event.title || "無題の予定";
+            const dates = document.createElement("p");
+            dates.textContent = `${formatEventDate(event.startAt)} ～ ${formatEventDate(event.endAt)}（日本時間）`;
+            item.append(title, dates);
+            for (const [label, value] of [["場所", event.location], ["詳細", event.description]]) {
+                if (!value) continue;
+                const detail = document.createElement("p");
+                detail.textContent = `${label}：${value}`;
+                item.appendChild(detail);
+            }
+            list.appendChild(item);
+        }
+        status.textContent = data.events.length
+            ? `${data.events.length}件の予定を表示しています`
+            : "このカレンダーには予定がありません";
+    } catch (error) {
+        if (!isCurrent()) return;
+        list.replaceChildren();
+        status.textContent = "予定一覧取得エラー：" + error.message;
+    }
+}
