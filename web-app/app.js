@@ -6,6 +6,7 @@ const CALENDAR_ID = "zQbayVLgx9HNvJ9c0vBW";
 
 let token = localStorage.getItem("token");
 let username = localStorage.getItem("username") || "";
+let calendarLoadId = 0;
 
 // -------------------------
 // 画面切り替え
@@ -110,6 +111,7 @@ async function login() {
             ).textContent = username;
 
             show("home");
+            await loadCalendars();
         }
 
     } catch (error) {
@@ -270,9 +272,12 @@ async function createCalendar() {
             }
         );
 
-        status.textContent =
-            "カレンダー作成成功: " +
-            data.calendarId;
+        const selectedId = document.getElementById("calendarSelect").value;
+        const refreshed = await loadCalendars(selectedId || data.calendarId);
+
+        if (refreshed) {
+            status.textContent = "カレンダー作成成功: " + data.calendarId;
+        }
 
     } catch (error) {
 
@@ -413,6 +418,7 @@ if (token) {
     ).textContent = username;
 
     show("home");
+    loadCalendars();
 
 } else {
 
@@ -478,6 +484,11 @@ registerButton.textContent = "カレンダーに登録";
 
 
 registerButton.onclick = async () => {
+    const calendarId = getSelectedCalendarId();
+    if (!calendarId) return;
+    const select = document.getElementById("calendarSelect");
+    const calendarName = select.selectedOptions[0].textContent;
+
     const eventTitle = title.value.trim();
     const startAt = start.value;
     const endAt = end.value;
@@ -492,7 +503,7 @@ registerButton.onclick = async () => {
         return;
     }
 
-    if (!confirm("この予定をカレンダーに登録しますか？")) {
+    if (!confirm(`「${calendarName}」にこの予定を登録しますか？`)) {
         return;
     }
 
@@ -503,7 +514,7 @@ registerButton.onclick = async () => {
             method: "POST",
             headers: auth(true),
             body: JSON.stringify({
-                calendarId: CALENDAR_ID,
+                calendarId: calendarId,
                 title: eventTitle,
                 startAt: startAt + ":00+09:00",
                 endAt: endAt + ":00+09:00",
@@ -534,10 +545,13 @@ item.appendChild(registerButton);
     }
 }
 
-async function loadCalendars() {
+async function loadCalendars(preferredId) {
     const select = document.getElementById("calendarSelect");
     const status = document.getElementById("status");
 
+    const selectedId = preferredId === undefined ? select.value : preferredId;
+    const requestToken = token;
+    const requestId = ++calendarLoadId;
     status.textContent = "カレンダー一覧を取得しています...";
 
     try {
@@ -546,6 +560,7 @@ async function loadCalendars() {
             headers: auth()
         });
 
+        if (token !== requestToken || requestId !== calendarLoadId) return false;
         select.replaceChildren();
 
         const placeholder = document.createElement("option");
@@ -562,12 +577,17 @@ async function loadCalendars() {
             select.appendChild(option);
         }
 
+        select.value = Array.from(select.options).some(option => option.value === selectedId)
+            ? selectedId : "";
         status.textContent =
             data.calendars.length + "件のカレンダーを取得しました";
+        return true;
 
     } catch (error) {
+        if (token !== requestToken || requestId !== calendarLoadId) return false;
         status.textContent =
             "カレンダー一覧取得エラー：" + error.message;
+        return false;
     }
 }
 
