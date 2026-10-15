@@ -2,7 +2,6 @@ const BASE_URL = "http://127.0.0.1:8000";
 
 // Android版と同じテスト用ID
 const CHAT_ID = "test-chat";
-const CALENDAR_ID = "zQbayVLgx9HNvJ9c0vBW";
 
 let token = localStorage.getItem("token");
 let username = localStorage.getItem("username") || "";
@@ -332,56 +331,63 @@ ID: ${data.calendarId}
 // -------------------------
 
 async function createEvent() {
+    const form = document.getElementById("eventForm");
+    const button = document.getElementById("createEventButton");
+    const status = document.getElementById("manualEventStatus");
+    if (button.disabled) return;
+    const calendarId = getSelectedCalendarId();
+    if (!calendarId) return;
+    const title = document.getElementById("manualTitle").value.trim();
+    const start = document.getElementById("manualStart").value;
+    const end = document.getElementById("manualEnd").value;
+    const location = document.getElementById("manualLocation").value.trim();
+    const description = document.getElementById("manualDescription").value.trim();
 
-    const status =
-        document.getElementById("status");
+    if (!title || !start || !end) {
+        status.textContent = "タイトル・開始日時・終了日時を入力してください";
+        return;
+    }
+    const datePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+    const startAt = start + ":00+09:00";
+    const endAt = end + ":00+09:00";
+    if (!datePattern.test(start) || !datePattern.test(end)
+        || !Number.isFinite(Date.parse(startAt)) || !Number.isFinite(Date.parse(endAt))) {
+        status.textContent = "日時を正しく入力してください";
+        return;
+    }
+    if (Date.parse(endAt) <= Date.parse(startAt)) {
+        status.textContent = "終了日時は開始日時より後にしてください";
+        return;
+    }
+    const calendarName = document.getElementById("calendarSelect").selectedOptions[0].textContent;
+    if (!confirm(`「${calendarName}」に「${title}」を登録しますか？`)) return;
 
+    const requestToken = token;
+    button.disabled = true;
+    status.textContent = "予定を登録しています...";
     try {
-
-        const data = await request(
-            "/events",
-            {
-                method: "POST",
-
-                headers: auth(true),
-
-                body: JSON.stringify({
-
-                    calendarId:
-                        CALENDAR_ID,
-
-                    title:
-                        "Webテストイベント",
-
-                    startAt:
-                        "2026-09-29T10:00:00+09:00",
-
-                    endAt:
-                        "2026-09-29T11:00:00+09:00",
-
-                    location:
-                        "Webテスト場所",
-
-                    description:
-                        "Webからのイベント作成テスト",
-
-                    source:
-                        "manual",
-
-                    status:
-                        "confirmed"
-                })
-            }
-        );
-
-        status.textContent =
-            "イベント作成成功: " +
-            data.eventId;
-
+        const data = await request("/events", {
+            method: "POST",
+            headers: auth(true),
+            body: JSON.stringify({
+                calendarId, title, startAt, endAt,
+                location: location || null,
+                description: description || null,
+                source: "manual",
+                status: "confirmed"
+            })
+        });
+        if (token !== requestToken) return;
+        form.reset();
+        status.textContent = "予定を登録しました！ ID: " + data.eventId;
+        if (document.getElementById("calendarSelect").value === calendarId) {
+            await loadEvents();
+        }
     } catch (error) {
-
-        status.textContent =
-            "通信エラー: " + error.message;
+        if (token !== requestToken) return;
+        status.textContent = "予定登録エラー：" + error.message;
+    } finally {
+        button.disabled = false;
     }
 }
 
@@ -398,6 +404,8 @@ function logout() {
     username = "";
     calendarLoadId++;
     eventLoadId++;
+    document.getElementById("eventForm").reset();
+    document.getElementById("manualEventStatus").textContent = "";
     document.getElementById("calendarSelect").replaceChildren(new Option("カレンダーを選択してください", ""));
     document.getElementById("eventList").replaceChildren();
     document.getElementById("eventsStatus").textContent = "カレンダーを選択してください";

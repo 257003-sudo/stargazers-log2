@@ -1,1 +1,11 @@
 *{box-sizing:border-box}body{margin:0;background:#f5f6f8;font-family:system-ui,"Yu Gothic",sans-serif;color:#202124}main{width:min(560px,calc(100% - 32px));margin:48px auto}section{background:white;padding:30px;border:1px solid #ddd;border-radius:14px;box-shadow:0 6px 24px #0001}h1{margin-top:0}h2{margin-top:28px;font-size:1.1rem}input,button{width:100%;padding:12px;margin:6px 0;border-radius:8px;font-size:1rem}input{border:1px solid #aaa}button{border:0;background:#2563eb;color:white;cursor:pointer}button:hover{opacity:.9}.logout{margin-top:24px;background:#b3261e}#messages{margin-top:12px;padding:10px;border:1px solid #ddd;border-radius:8px;min-height:50px}#messages div{padding:6px;border-bottom:1px solid #eee}#status{white-space:pre-wrap}
+#eventList{list-style:none;padding:0;margin:12px 0}
+#eventList li{padding:12px;border:1px solid #ddd;border-radius:8px;margin-bottom:10px;overflow-wrap:anywhere}
+#eventList p{margin:6px 0;font-size:.9rem;white-space:pre-wrap}
+#eventsStatus{font-size:.9rem;color:#555}
+
+textarea,select{max-width:100%;font:inherit}
+textarea{box-sizing:border-box;width:100%;padding:12px;margin:6px 0;border:1px solid #aaa;border-radius:8px;resize:vertical}
+#eventForm{margin:12px 0 24px}
+#manualEventStatus{white-space:pre-wrap;overflow-wrap:anywhere}
+button:disabled{opacity:.6;cursor:wait}
