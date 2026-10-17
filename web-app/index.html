@@ -84,6 +84,25 @@
         <h1 tabindex="-1">カレンダー</h1>
         <button onclick="createCalendar()">カレンダー作成</button>
         <button onclick="getCalendar()">カレンダー情報を取得</button>
+        <div class="month-toolbar">
+            <button type="button" onclick="changeCalendarMonth(-1)" aria-label="前の月">‹</button>
+            <h2 id="calendarMonth" aria-live="polite"></h2>
+            <button type="button" onclick="changeCalendarMonth(1)" aria-label="次の月">›</button>
+        </div>
+        <div class="calendar-actions">
+            <button type="button" onclick="showCalendarToday()">今日</button>
+            <button type="button" onclick="showAllCalendarEvents()">すべての予定</button>
+            <button type="button" onclick="loadEvents()">予定を更新</button>
+        </div>
+        <p class="calendar-help">日付を選ぶと、その日の予定を表示します。日時は日本時間です。</p>
+        <table id="monthCalendar" aria-labelledby="calendarMonth">
+            <thead><tr><th scope="col">日</th><th scope="col">月</th><th scope="col">火</th><th scope="col">水</th><th scope="col">木</th><th scope="col">金</th><th scope="col">土</th></tr></thead>
+            <tbody id="calendarDays"></tbody>
+        </table>
+        <h3 id="eventListHeading">選択した日の予定</h3>
+        <p id="eventsStatus" role="status">カレンダーを選択してください</p>
+        <ul id="eventList"></ul>
+
         <h3>予定を手動で登録</h3>
         <form id="eventForm" onsubmit="event.preventDefault(); window.createEvent();">
             <p>開始・終了日時は日本時間で入力してください。</p>
@@ -100,12 +119,6 @@
             <button id="createEventButton" type="submit">予定を登録</button>
             <p id="manualEventStatus" role="status"></p>
         </form>
-
-        <h3>予定一覧</h3>
-        <button onclick="loadEvents()">予定一覧を更新</button>
-        <p id="eventsStatus" role="status">カレンダーを選択してください</p>
-        <ul id="eventList"></ul>
-
 
         <button onclick="show('aiScreen')">AIで予定を抽出する</button>
         <button class="back-home" onclick="show('home')">ホームへ戻る</button>

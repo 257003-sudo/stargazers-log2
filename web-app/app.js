@@ -7,6 +7,10 @@ let token = localStorage.getItem("token");
 let username = localStorage.getItem("username") || "";
 let calendarLoadId = 0;
 let eventLoadId = 0;
+let calendarEvents = [];
+let calendarReady = false;
+let selectedCalendarDate = jstDateKey(new Date());
+let displayedCalendarMonth = selectedCalendarDate.slice(0, 7);
 let sessionVerified = false;
 let sessionCheckId = 0;
 let authGeneration = 0;
@@ -415,6 +419,8 @@ async function createEvent() {
         form.reset();
         status.textContent = "予定を登録しました！ ID: " + data.eventId;
         if (document.getElementById("calendarSelect").value === calendarId) {
+            selectedCalendarDate = jstDateKey(new Date(startAt));
+            displayedCalendarMonth = selectedCalendarDate.slice(0, 7);
             await loadEvents();
         }
     } catch (error) {
@@ -441,6 +447,11 @@ function logout(message = "") {
     username = "";
     calendarLoadId++;
     eventLoadId++;
+    calendarEvents = [];
+    calendarReady = false;
+    selectedCalendarDate = jstDateKey(new Date());
+    displayedCalendarMonth = selectedCalendarDate.slice(0, 7);
+    renderMonthCalendar();
     document.getElementById("eventForm").reset();
     document.getElementById("manualEventStatus").textContent = "";
     document.getElementById("calendarSelect").replaceChildren(new Option("カレンダーを選択してください", ""));
@@ -601,6 +612,8 @@ registerButton.onclick = async () => {
         alert("予定を登録しました！ ID: " + data.eventId);
         registerButton.textContent = "登録済み";
         if (document.getElementById("calendarSelect").value === calendarId) {
+            selectedCalendarDate = jstDateKey(new Date(startAt + ":00+09:00"));
+            displayedCalendarMonth = selectedCalendarDate.slice(0, 7);
             await loadEvents();
         }
 
@@ -630,6 +643,9 @@ async function loadCalendars(preferredId) {
     const requestId = ++calendarLoadId;
     // Invalidate pending event requests while calendar membership is refreshed.
     eventLoadId++;
+    calendarEvents = [];
+    calendarReady = false;
+    renderMonthCalendar();
     document.getElementById("eventList").replaceChildren();
     document.getElementById("eventsStatus").textContent = "カレンダー一覧を取得しています...";
     status.textContent = "カレンダー一覧を取得しています...";
@@ -698,16 +714,132 @@ function formatEventDate(value) {
     }).format(date);
 }
 
+function jstDateKey(value) {
+    const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit"
+    }).formatToParts(value);
+    const part = type => parts.find(p => p.type === type).value;
+    return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+function eventsOnDate(key) {
+    const dayStart = Date.parse(key + "T00:00:00+09:00");
+    return calendarEvents.filter(event => {
+        const start = Date.parse(event.startAt);
+        if (!Number.isFinite(start)) return false;
+        const endValue = Date.parse(event.endAt);
+        const end = Number.isFinite(endValue) && endValue > start ? endValue : start + 1;
+        return start < dayStart + 86400000 && end > dayStart;
+    });
+}
+
+function renderMonthCalendar() {
+    const [year, month] = displayedCalendarMonth.split("-").map(Number);
+    document.getElementById("calendarMonth").textContent = `${year}年${month}月`;
+    const body = document.getElementById("calendarDays");
+    body.replaceChildren();
+    const offset = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
+    const count = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    const today = jstDateKey(new Date());
+    for (let i = 0; i < Math.ceil((offset + count) / 7) * 7; i++) {
+        if (i % 7 === 0) body.appendChild(document.createElement("tr"));
+        const cell = document.createElement("td");
+        const day = i - offset + 1;
+        if (day > 0 && day <= count) {
+            const key = `${displayedCalendarMonth}-${String(day).padStart(2, "0")}`;
+            const events = eventsOnDate(key);
+            const button = document.createElement("button");
+            button.type = "button";
+            button.dataset.date = key;
+            button.disabled = !calendarReady;
+            button.setAttribute("aria-pressed", String(selectedCalendarDate === key));
+            button.setAttribute("aria-label", `${year}年${month}月${day}日、${events.length}件の予定`);
+            if (key === today) button.setAttribute("aria-current", "date");
+            const label = document.createElement("span");
+            label.textContent = day;
+            button.appendChild(label);
+            if (events.length) {
+                const badge = document.createElement("small");
+                badge.className = "event-count";
+                badge.textContent = `${events.length}件`;
+                button.appendChild(badge);
+                button.classList.add("has-events");
+            }
+            button.onclick = () => {
+                selectedCalendarDate = key;
+                renderMonthCalendar();
+                document.getElementById("calendarDays").querySelector(`[data-date="${key}"]`).focus({preventScroll: true});
+                renderCalendarEventList();
+            };
+            cell.appendChild(button);
+        }
+        body.lastElementChild.appendChild(cell);
+    }
+}
+
+function changeCalendarMonth(direction) {
+    const [year, month] = displayedCalendarMonth.split("-").map(Number);
+    const date = new Date(Date.UTC(year, month - 1 + direction, 1));
+    // Keep date input and formatting within a four-digit year.
+    if (date.getUTCFullYear() < 100 || date.getUTCFullYear() > 9999) return;
+    displayedCalendarMonth = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+    selectedCalendarDate = displayedCalendarMonth + "-01";
+    renderMonthCalendar();
+    renderCalendarEventList();
+}
+
+function showCalendarToday() {
+    selectedCalendarDate = jstDateKey(new Date());
+    displayedCalendarMonth = selectedCalendarDate.slice(0, 7);
+    renderMonthCalendar();
+    renderCalendarEventList();
+}
+
+function showAllCalendarEvents() {
+    selectedCalendarDate = null;
+    renderMonthCalendar();
+    renderCalendarEventList();
+}
+
+function renderCalendarEventList() {
+    const list = document.getElementById("eventList");
+    list.replaceChildren();
+    document.getElementById("eventListHeading").textContent = selectedCalendarDate
+        ? `${selectedCalendarDate.replaceAll("-", "/")} の予定` : "すべての予定";
+    if (!calendarReady) return;
+    const events = selectedCalendarDate ? eventsOnDate(selectedCalendarDate) : calendarEvents;
+    for (const event of events) {
+        const item = document.createElement("li");
+        const title = document.createElement("strong");
+        title.textContent = event.title || "無題の予定";
+        const dates = document.createElement("p");
+        dates.textContent = `${formatEventDate(event.startAt)} ～ ${formatEventDate(event.endAt)}（日本時間）`;
+        item.append(title, dates);
+        for (const [label, value] of [["場所", event.location], ["詳細", event.description]]) {
+            if (!value) continue;
+            const detail = document.createElement("p");
+            detail.textContent = `${label}：${value}`;
+            item.appendChild(detail);
+        }
+        list.appendChild(item);
+    }
+    document.getElementById("eventsStatus").textContent = events.length
+        ? `${events.length}件の予定を表示しています`
+        : selectedCalendarDate ? "この日の予定はありません" : "このカレンダーには予定がありません";
+}
+
 async function loadEvents() {
     const calendarId = document.getElementById("calendarSelect").value;
-    const list = document.getElementById("eventList");
     const status = document.getElementById("eventsStatus");
     const requestId = ++eventLoadId;
     const requestToken = token;
     const isCurrent = () => requestId === eventLoadId && token === requestToken
         && document.getElementById("calendarSelect").value === calendarId;
 
-    list.replaceChildren();
+    calendarEvents = [];
+    calendarReady = false;
+    renderMonthCalendar();
+    renderCalendarEventList();
     if (!calendarId) {
         status.textContent = "カレンダーを選択してください";
         return;
@@ -719,28 +851,15 @@ async function loadEvents() {
         });
         if (!isCurrent()) return;
         if (!Array.isArray(data.events)) throw new Error("予定一覧の応答形式が不正です");
-
-        for (const event of data.events) {
-            const item = document.createElement("li");
-            const title = document.createElement("strong");
-            title.textContent = event.title || "無題の予定";
-            const dates = document.createElement("p");
-            dates.textContent = `${formatEventDate(event.startAt)} ～ ${formatEventDate(event.endAt)}（日本時間）`;
-            item.append(title, dates);
-            for (const [label, value] of [["場所", event.location], ["詳細", event.description]]) {
-                if (!value) continue;
-                const detail = document.createElement("p");
-                detail.textContent = `${label}：${value}`;
-                item.appendChild(detail);
-            }
-            list.appendChild(item);
-        }
-        status.textContent = data.events.length
-            ? `${data.events.length}件の予定を表示しています`
-            : "このカレンダーには予定がありません";
+        calendarEvents = data.events;
+        calendarReady = true;
+        renderMonthCalendar();
+        renderCalendarEventList();
     } catch (error) {
         if (!isCurrent()) return;
-        list.replaceChildren();
         status.textContent = "予定一覧取得エラー：" + error.message;
     }
 }
+
+renderMonthCalendar();
+renderCalendarEventList();
