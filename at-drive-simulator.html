@@ -1,161 +1,270 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>AT DRIVE — ドライブシミュレーター</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AT DRIVE — マウスハンドル・駐車練習</title>
 <style>
-:root{color-scheme:dark;--bg:#10171d;--panel:#1b252d;--line:#34414b;--mint:#b6f4d0;--orange:#ffbc82;--muted:#a4b1ba}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#f0f4f5;font-family:system-ui,-apple-system,"Yu Gothic",sans-serif}button{font:inherit;color:inherit;cursor:pointer;border:1px solid var(--line);background:#24313a;border-radius:12px;padding:12px 18px;touch-action:none;user-select:none;-webkit-user-select:none}button:focus-visible{outline:3px solid var(--orange);outline-offset:3px}button:hover{border-color:#b6f4d080}button:active,.held{transform:translateY(2px);background:#3c514e!important}button:disabled{opacity:.45;cursor:default}.wrap{max-width:1280px;margin:auto;padding:26px 24px 20px}header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;gap:12px}.brand{display:flex;align-items:center;gap:14px}.logo{display:grid;place-items:center;background:var(--mint);color:#10251b;width:44px;height:44px;border-radius:13px;font-size:17px;font-weight:900}.brand h1{font-size:21px;letter-spacing:.12em;margin:0}.brand p{font-size:11px;color:var(--muted);letter-spacing:.13em;margin:5px 0 0}.header-tools{display:flex;gap:8px;flex-shrink:0}.header-tools button{white-space:nowrap;padding:9px 13px;font-size:12px}.scene{position:relative;border-radius:22px;overflow:hidden;border:1px solid #52616b;height:min(58vw,580px);min-height:380px;background:#90aabb;isolation:isolate}canvas{display:block;width:100%;height:100%}.scene:after{content:"";position:absolute;inset:0;border-radius:21px;box-shadow:inset 0 0 50px #10202b44;pointer-events:none}.hud{position:absolute;left:22px;right:22px;top:20px;display:flex;justify-content:space-between;align-items:start;gap:10px;pointer-events:none}.tag{background:#12222bce;backdrop-filter:blur(8px);border:1px solid #ffffff25;border-radius:12px;padding:12px 16px}.tag small{display:block;font-size:10px;letter-spacing:.15em;color:#d3e0e6;margin-bottom:4px}.tag strong{font-size:15px;letter-spacing:.03em}.tag .dot{display:inline-block;width:7px;height:7px;background:var(--mint);border-radius:50%;margin-right:8px}.hud-right{text-align:right}.hint{position:absolute;top:98px;left:50%;transform:translateX(-50%);padding:10px 18px;border-radius:24px;background:#10202cdd;color:#fff;font-size:12px;max-width:92%;width:max-content;text-align:center;pointer-events:none;transition:opacity .15s}.hint.warn{color:#ffcb9e;border:1px solid #ffbc8266}.cockpit{pointer-events:none;position:absolute;bottom:0;left:0;right:0;height:143px;background:linear-gradient(0deg,#101920 45%,#15212bed 80%,#21303900);display:flex;justify-content:center;align-items:end;gap:30px;padding:0 20px 18px}.dial{width:130px;text-align:center}.dial small{font-size:9px;letter-spacing:.17em;color:var(--muted)}#speed{display:block;font-size:57px;font-weight:650;letter-spacing:-.07em;line-height:1.08;font-variant-numeric:tabular-nums}.rpm-track{height:4px;background:#3a4750;border-radius:10px;margin:10px 0 4px;overflow:hidden}.rpm-track i{display:block;height:100%;background:var(--orange);width:12%}.wheel{width:108px;height:108px;margin-bottom:-26px;filter:drop-shadow(0 2px 2px #000);transform-origin:center;flex:none}.gear-display{width:72px;text-align:center;padding-bottom:7px}.gear-display span{display:block;font-size:42px;line-height:1.25;font-weight:700;color:var(--mint)}.gear-display small{font-size:9px;color:var(--muted);letter-spacing:.1em}.dashboard{display:grid;grid-template-columns:1.05fr 1fr 1.05fr;gap:15px;margin-top:16px}.panel{padding:18px 20px;border:1px solid var(--line);border-radius:17px;background:var(--panel)}.panel-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:13px}.panel-title h2{font-size:11px;letter-spacing:.15em;color:var(--muted);font-weight:500;margin:0}.panel-title span{font-size:10px;color:#92a39f}.gear-row{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.gear-row button{font-size:20px;font-weight:700;padding:10px 4px}.gear-row button[aria-pressed="true"]{background:var(--mint);color:#152b20;border-color:var(--mint)}.gear-row small{display:block;font-size:9px;font-weight:400;margin-top:4px;opacity:.65}.panel-note{font-size:10px;color:var(--muted);margin:10px 0 0;line-height:1.6}.steer-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.steer-row button{padding:14px 6px;font-size:14px}.pedals{display:grid;grid-template-columns:1fr 1fr;gap:9px}.pedals button{min-height:65px;padding:10px 6px;font-size:12px;font-weight:700}.pedals small{display:block;font-size:9px;font-weight:400;opacity:.65;margin-top:6px}#brake{background:#5a4035;border-color:#805d4b;color:#ffd4b0}#accelerator{background:#2a463e;border-color:#496a5d;color:var(--mint)}.footer{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:11px;padding:17px 2px 0;line-height:1.7}.overlay{position:absolute;inset:0;z-index:3;background:#0b182a6b;backdrop-filter:blur(6px);display:grid;place-items:center;padding:24px}.overlay[hidden]{display:none}.intro{max-height:100%;overflow:auto;background:#13212cf0;border:1px solid #ffffff30;border-radius:22px;padding:32px;max-width:440px;box-shadow:0 25px 80px #0005}.eyebrow{font-size:10px;color:var(--mint);letter-spacing:.18em}.intro h2{font-size:32px;line-height:1.3;margin:12px 0}.intro p{font-size:13px;line-height:1.9;color:#bdcbd2}.intro ol{padding-left:20px;font-size:13px;color:#d7e1e5;line-height:2}.intro button{width:100%;background:var(--mint);color:#10251b;border:0;font-weight:bold;margin-top:8px}.progress{height:3px;background:#32434d;margin-top:8px;border-radius:3px;overflow:hidden}.progress i{display:block;height:100%;background:var(--mint);width:0}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
-@media(max-width:760px){.wrap{padding:16px 12px}.brand h1{font-size:16px}.brand p{font-size:9px;max-width:120px}.header-tools button{font-size:11px;padding:8px}.scene{height:55vh;min-height:360px;max-height:600px;border-radius:18px}.hud{left:12px;right:12px;top:12px}.tag{padding:9px 11px}.tag small{font-size:8px}.tag strong{font-size:12px}.hint{top:83px;font-size:11px;padding:8px 12px}.cockpit{gap:15px}.dashboard{grid-template-columns:1fr 1fr;gap:10px}.panel{padding:14px 12px}.panel:first-child{grid-column:1/-1}.gear-row button{padding:8px}.gear-row small{display:inline;margin-left:8px}.panel-title{margin-bottom:10px}.panel-note{font-size:9px}.footer{font-size:10px;flex-direction:column;gap:2px}.intro{padding:23px}.intro h2{font-size:26px}.intro p,.intro ol{font-size:12px}.wheel{width:90px;height:90px}.dial{width:110px}#speed{font-size:49px}.pedals button{min-height:65px;font-size:11px}}
-@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+:root{color-scheme:dark;--bg:#10171d;--panel:#1b252d;--line:#34414b;--mint:#b6f4d0;--orange:#ffbc82;--muted:#a4b1ba}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#f0f4f5;font-family:system-ui,-apple-system,"Yu Gothic",sans-serif;min-width:1000px}button,input{font:inherit}button{color:inherit;cursor:pointer;border:1px solid var(--line);background:#24313a;border-radius:10px;padding:10px 14px;user-select:none;white-space:nowrap}button:hover{border-color:#b6f4d080}button:focus-visible,input:focus-visible{outline:3px solid var(--orange);outline-offset:3px}button:disabled{opacity:.45;cursor:default}button[aria-pressed="true"]{background:var(--mint);color:#10251b;border-color:var(--mint)}[hidden]{display:none!important}.wrap{max-width:1360px;margin:auto;padding:18px 24px}.header{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:14px}.brand{display:flex;align-items:center;gap:13px}.logo{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:var(--mint);color:#14271d;font-size:18px;font-weight:900}.brand h1{font-size:20px;letter-spacing:.13em;margin:0}.brand p{color:var(--muted);font-size:10px;letter-spacing:.12em;margin:5px 0 0}.tools{display:flex;gap:8px}.tools button{font-size:12px}.scene{height:clamp(380px,49vh,550px);position:relative;isolation:isolate;border:1px solid #52616b;border-radius:20px;overflow:hidden;background:#899da7}#view{width:100%;height:100%;display:block}.hud{position:absolute;left:18px;right:18px;top:16px;display:flex;justify-content:space-between;align-items:start;pointer-events:none}.tag,.mini{background:#13232cde;border:1px solid #ffffff25;border-radius:12px;padding:11px 14px;backdrop-filter:blur(8px)}.tag small{display:block;font-size:9px;letter-spacing:.15em;color:#bfcdd4;margin-bottom:6px}.tag strong{font-size:14px}.tag p{font-size:10px;color:#bfcdd4;margin:7px 0 0}.mint{color:var(--mint)}.mirror{position:absolute;left:50%;top:16px;transform:translateX(-50%);width:230px;height:99px;border:5px solid #18232b;border-radius:11px;background:#728590;overflow:hidden;box-shadow:0 4px 12px #0007}.mirror canvas{display:block;width:100%;height:100%}.mirror span{position:absolute;left:8px;top:5px;background:#13222cc9;border-radius:4px;padding:3px 6px;font-size:9px}.mini{padding:8px;width:175px}.mini small{display:block;font-size:9px;letter-spacing:.13em;color:#c2cfd4;margin-bottom:4px}.mini canvas{display:block;width:157px;height:122px;border-radius:6px}.hint{position:absolute;left:50%;top:128px;transform:translateX(-50%);background:#14232de8;border:1px solid #ffffff25;color:#e9f1f4;border-radius:30px;padding:9px 17px;font-size:12px;max-width:64%;width:max-content;text-align:center;pointer-events:none}.hint.warn{border-color:#ffbc8270;color:var(--orange)}.cockpit{pointer-events:none;position:absolute;bottom:0;left:0;right:0;height:110px;background:linear-gradient(0deg,#101920 40%,#15212bdc 80%,transparent);display:flex;justify-content:center;align-items:flex-end;gap:45px;padding-bottom:13px}.speed-box{width:100px;text-align:center}.speed-box small,.cockpit-label small{font-size:9px;letter-spacing:.14em;color:var(--muted)}#speed{display:block;font-size:46px;font-weight:650;line-height:1.12;font-variant-numeric:tabular-nums}.cockpit-label{padding-bottom:8px;text-align:center}.cockpit-label strong{display:block;font-size:15px;margin-bottom:5px}.gear-box{width:60px;text-align:center}.gear-box strong{display:block;font-size:37px;color:var(--mint)}.gear-box small{font-size:9px;color:var(--muted)}.dashboard{display:grid;grid-template-columns:1fr 1.04fr 1fr;gap:14px;margin-top:14px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px}.panel-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.panel-title h2{font-size:10px;color:var(--muted);letter-spacing:.14em;font-weight:500;margin:0}.panel-title span{font-size:10px;color:#a3b1b6}.gear-row{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.gear-row button{padding:8px;font-size:21px;font-weight:bold}.gear-row small{display:block;font-size:9px;font-weight:400;margin-top:3px}.note{font-size:10px;line-height:1.7;color:var(--muted);margin:10px 0}.checks{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px}.check{display:flex;align-items:center;gap:6px;font-size:11px;color:#a4b1ba;padding:7px 8px;background:#142028;border-radius:7px}.check i{width:6px;height:6px;border-radius:50%;background:#65737e}.check.ok{color:var(--mint)}.check.ok i{background:var(--mint)}#parkingStatus{font-size:12px;min-height:22px;margin:12px 0 0;color:var(--mint)}.steering-layout{display:flex;align-items:center;justify-content:center;gap:17px}.wheel-rim{width:180px;height:180px;flex:none;cursor:grab;touch-action:none;user-select:none;outline-offset:5px;border-radius:50%;background:radial-gradient(circle,#26343d 0,transparent 66%)}.wheel-rim.dragging{cursor:grabbing}.wheel-rim:focus-visible{outline:3px solid var(--orange)}#wheel{width:180px;height:180px;display:block;filter:drop-shadow(0 5px 5px #0007);transform-origin:center}.wheel-info{width:112px}.wheel-info strong{display:block;font-size:23px;font-variant-numeric:tabular-nums}.wheel-info small{font-size:9px;color:var(--muted)}.wheel-info button{font-size:10px;padding:8px;margin-top:12px}.load-track{height:5px;background:#34434b;border-radius:5px;overflow:hidden;margin-top:10px}.load-track i{display:block;height:100%;width:0;background:var(--orange)}.feel-control{white-space:nowrap;display:flex;align-items:center;gap:10px;margin-top:9px;font-size:10px;color:#b9c7ce}.feel-control input{min-width:0;width:100%;accent-color:var(--mint)}.pedals{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pedals button{height:72px;font-size:13px;font-weight:700;touch-action:none}.pedals small{display:block;font-size:10px;margin-top:7px;font-weight:400;opacity:.7}#brake{background:#5a4035;color:#ffd4b0;border-color:#805d4b}#accelerator{background:#2a463e;color:var(--mint);border-color:#496a5d}.held{box-shadow:inset 0 0 0 2px #ffffff80;filter:brightness(1.2)}.view-controls{display:flex;gap:8px;margin-top:12px}.view-controls button{flex:1;font-size:11px;padding:9px 6px}#assist{display:block;margin-top:11px;font-size:10px;color:#a4b1ba;line-height:1.7}.footer{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin:13px 1px 0;line-height:1.8}.overlay{position:absolute;inset:0;z-index:4;background:#0b182a70;backdrop-filter:blur(6px);display:grid;place-items:center;padding:20px}.intro{max-height:100%;overflow:auto;width:470px;border:1px solid #ffffff30;border-radius:20px;background:#14232df5;box-shadow:0 20px 70px #0006;padding:26px 30px}.eyebrow{font-size:9px;letter-spacing:.18em;color:var(--mint)}.intro h2{font-size:28px;line-height:1.3;margin:11px 0}.intro p,.intro ol{font-size:12px;line-height:1.85;color:#becbd3}.intro ol{padding-left:19px}.intro button{width:100%;background:var(--mint);color:#14281e;border:0;font-weight:bold}.intro .sub{font-size:10px}.success{color:var(--mint)!important}#viewButton[aria-pressed="true"]{background:#ecbd91;border-color:#ecbd91;color:#2c2018}
 </style>
 </head>
 <body><main class="wrap">
-<header><div class="brand"><span class="logo" aria-hidden="true">AT</span><div><h1>AT DRIVE</h1><p>A LITTLE DRIVE. A LITTLE ESCAPE.</p></div></div><div class="header-tools"><button id="pause" disabled>一時停止</button><button id="reset">リセット</button></div></header>
-<div class="scene" id="scene">
-<canvas id="view" aria-label="前方の道路。AT車を運転するシミュレーター"></canvas>
-<div class="hud"><div class="tag"><small>FREE DRIVE / 01</small><strong><span class="dot"></span>サンセット・ロード</strong></div><div class="tag hud-right"><small>DISTANCE</small><strong id="distance">0.00 km</strong><div class="progress"><i id="progress"></i></div></div></div>
-<div class="hint" id="hint" role="status" aria-live="polite">ブレーキを踏みながら D を選択してください</div>
-<div class="cockpit"><div class="dial"><small>SPEED · km/h</small><strong id="speed">0</strong><div class="rpm-track"><i id="rpmBar"></i></div><small id="rpm">0 RPM</small></div>
-<svg class="wheel" id="wheel" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="47" fill="#17232c" stroke="#0b1117" stroke-width="15"/><circle cx="60" cy="60" r="45" fill="none" stroke="#53636d" stroke-width="2"/><path d="M16 51L50 63L52 105M104 51L70 63L68 105" fill="none" stroke="#9aa6ac" stroke-width="8"/><circle cx="60" cy="60" r="19" fill="#263741" stroke="#0c151c" stroke-width="3"/><text x="60" y="65" text-anchor="middle" fill="#c5d4da" font-size="12" font-family="sans-serif">AT</text></svg>
-<div class="gear-display"><small>GEAR</small><span id="gearLabel">P</span><small id="driveStatus">PARKING</small></div></div>
-<div class="overlay" id="overlay"><div class="intro"><span class="eyebrow">YOUR NEXT LITTLE ADVENTURE</span><h2 id="introTitle">気軽に、ひと走り。</h2><div id="introBody"><p>曲がりくねった夕暮れの道を、AT車で自由にドライブ。急がず、まずは操作に慣れてみましょう。</p><ol><li>ブレーキを押しながら <b>D</b> を選択</li><li>ブレーキを離し、アクセルで発進</li><li>左右キーで道路に沿ってハンドル操作</li></ol><p>キーボードでも、画面のボタンでも操作できます。</p></div><button id="start">ドライブを始める →</button></div></div>
+<header class="header"><div class="brand"><span class="logo" aria-hidden="true">AT</span><div><h1>AT DRIVE</h1><p>STEERING FEEL / PARKING PRACTICE</p></div></div><div class="tools"><button id="parkingMode" aria-pressed="true">駐車練習</button><button id="roadMode" aria-pressed="false">道路走行</button><button id="pause" disabled>一時停止</button><button id="reset">リセット</button></div></header>
+<div class="scene">
+<canvas id="view" aria-label="車内からの前方または後方の景色"></canvas>
+<div class="hud"><div class="tag"><small id="modeLabel">PARKING PRACTICE / 03</small><strong id="courseName">緑の 03 番にバック駐車</strong><p id="positionHint">白線内で停止 → P で駐車完了</p></div><div class="mini"><small>TOP VIEW · ▲ 自車 / ▣ 目標</small><canvas id="map" width="314" height="244" aria-label="駐車場と車の位置を示す上空図"></canvas></div></div>
+<div class="mirror"><canvas id="mirror" aria-label="反対方向の確認映像"></canvas><span id="mirrorLabel">後方確認</span></div>
+<div class="hint" id="hint" role="status" aria-live="polite">ブレーキを踏みながら R を選択してください</div>
+<div class="cockpit"><div class="speed-box"><small>SPEED · km/h</small><strong id="speed">0</strong></div><div class="cockpit-label"><strong id="cameraLabel">前方を確認中</strong><small id="travelLabel">W / ↑：アクセル　SPACE：ブレーキ</small></div><div class="gear-box"><small>GEAR</small><strong id="gearLabel">P</strong></div></div>
+<div class="overlay" id="overlay"><div class="intro"><span class="eyebrow">MOUSE STEERING / DESKTOP EDITION</span><h2 id="introTitle">ハンドルを握って、<br>バック駐車。</h2><div id="introBody"><p>マウスでハンドルの外周をつかんで回します。慣性・摩擦・中央の抵抗感があるため、ゆっくり回してください。</p><ol><li>Spaceでブレーキを踏み、<b>2 / R</b> を選択</li><li>Rで後方表示へ。W / ↑でゆっくり後退</li><li>緑の03番に収め、停止して <b>1 / P</b></li></ol><p class="sub">V：前後切替 / B長押し：一時的に反対側を見る。<br>マウスに物理的な反力を出す機能ではありません。</p></div><button id="start">練習を始める →</button></div></div>
 </div>
 <div class="dashboard">
-<section class="panel"><div class="panel-title"><h2>TRANSMISSION</h2><span>AT / オートマチック</span></div><div class="gear-row" aria-label="シフトレバー"><button data-gear="P" aria-pressed="true">P<small>1 · 駐車</small></button><button data-gear="R" aria-pressed="false">R<small>2 · 後退</small></button><button data-gear="N" aria-pressed="false">N<small>3 · 中立</small></button><button data-gear="D" aria-pressed="false">D<small>4 · 前進</small></button></div><p class="panel-note">P・R・Dへの切り替えは、停止してブレーキを踏んでから。Nでは惰性で進みます。</p></section>
-<section class="panel"><div class="panel-title"><h2>STEERING</h2><span>A / D · ← / →</span></div><div class="steer-row"><button id="left" aria-label="左にハンドルを切る">← 左</button><button id="right" aria-label="右にハンドルを切る">右 →</button></div><p class="panel-note">押している間ハンドルを切り、離すと中央に戻ります。</p></section>
-<section class="panel"><div class="panel-title"><h2>PEDALS</h2><span>長押しで操作</span></div><div class="pedals"><button id="brake">ブレーキ<small>S / ↓ / SPACE</small></button><button id="accelerator">アクセル<small>W / ↑</small></button></div><p class="panel-note">D・Rではペダルを離してもゆっくり進みます。</p></section>
+<section class="panel"><div class="panel-title"><h2>TRANSMISSION / PARKING</h2><span>数字 1–4</span></div><div class="gear-row"><button data-gear="P" aria-pressed="true">P<small>1 · 駐車</small></button><button data-gear="R" aria-pressed="false">R<small>2 · 後退</small></button><button data-gear="N" aria-pressed="false">N<small>3 · 中立</small></button><button data-gear="D" aria-pressed="false">D<small>4 · 前進</small></button></div><p class="note">P・R・Dは停止＋ブレーキで切替。Rで後方へ、Dで前方へ自動で切り替わります。</p><div class="checks"><span class="check" id="checkPosition"><i></i>白線内</span><span class="check" id="checkAngle"><i></i>車体の向き</span><span class="check" id="checkStop"><i></i>停止</span><span class="check" id="checkPark"><i></i>Pレンジ</span></div><p id="parkingStatus" role="status" aria-live="polite">目標：03番の駐車スペース</p></section>
+<section class="panel"><div class="panel-title"><h2>MOUSE STEERING</h2><span>ドラッグして回転 · 左右540°</span></div><div class="steering-layout"><div id="wheelGrip" class="wheel-rim" role="slider" tabindex="0" aria-label="ハンドル。マウスで外周をドラッグ。矢印キーで微調整" aria-valuemin="-540" aria-valuemax="540" aria-valuenow="0"><svg id="wheel" viewBox="0 0 180 180" aria-hidden="true"><circle cx="90" cy="90" r="69" fill="#18242d" stroke="#091117" stroke-width="23"/><circle cx="90" cy="90" r="69" fill="none" stroke="#63727b" stroke-width="2"/><path d="M24 75L75 96L78 157M156 75L105 96L102 157" fill="none" stroke="#9da9ad" stroke-width="11"/><path d="M85 13L95 13L95 27L85 27Z" fill="#ffbc82"/><circle cx="90" cy="90" r="27" fill="#2b3b45" stroke="#101a21" stroke-width="3"/><text x="90" y="96" text-anchor="middle" fill="#d4dee2" font-size="16" font-family="sans-serif">AT</text></svg></div><div class="wheel-info"><strong id="wheelAngle">0°</strong><small id="wheelFeel">低速：重めの操舵</small><div class="load-track"><i id="wheelLoad"></i></div><button id="centerWheel">中央へ戻す · C</button></div></div><label class="feel-control" for="steeringWeight">抵抗感<input id="steeringWeight" type="range" min="0.5" max="2" step="0.1" value="1.2"><span id="weightValue">1.2</span></label></section>
+<section class="panel"><div class="panel-title"><h2>PEDALS / VIEW</h2><span>マウスはハンドル、足はキーで</span></div><div class="pedals"><button id="brake">ブレーキ<small>S / ↓ / SPACE</small></button><button id="accelerator">アクセル<small>W / ↑</small></button></div><div class="view-controls"><button id="viewButton" aria-pressed="false">後方を見る · V</button><button id="guidesButton" aria-pressed="true">後退ガイド ON</button></div><span id="assist">Bを押している間は反対側を確認。ドラッグを離すと、走行中は徐々にハンドルが戻ります。停止中は切れ角を保持します。後方表示でも操舵方向は同じです。</span></section>
 </div>
-<footer class="footer"><span id="milestone">まずは 1 km のドライブへ。</span><span>数字 1–4：シフト / Esc：一時停止　·　外部ファイル不要</span></footer>
+<footer class="footer"><span id="summary">駐車区画 5 台分 / 03番が目標 / 車幅 1.8 m・全長 4.4 m</span><span>Esc：一時停止　·　単体HTML / 外部素材・サーバー不要</span></footer>
 </main>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const canvas=$('view'), ctx=canvas.getContext('2d');
-const gearNames={P:'PARKING',R:'REVERSE',N:'NEUTRAL',D:'DRIVE'};
-const keys=new Set(), pointers=new Map();
-const state={started:false,paused:false,gear:'P',speed:0,x:0,z:0,heading:0,steer:0,distance:0,offroad:false};
-let W=0,H=0,last=0,notice='',noticeUntil=0,lastHint='';
-const keyControls={ArrowUp:'accelerator',KeyW:'accelerator',ArrowDown:'brake',KeyS:'brake',Space:'brake',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right'};
+const TAU=Math.PI*2,MAX_WHEEL=Math.PI*3,CAR_WIDTH=1.8,CAR_LENGTH=4.4;
+const LOT={left:3.6,right:30,bottom:-23,top:40};
+const BAYS=Array.from({length:5},(_,i)=>({x:11.5+i*3.2,z:3.4,width:3.2,length:6.4}));
+const TARGET=BAYS[2];
+const PARKED=[{x:BAYS[0].x,z:3.4,color:'#9da6ae'},{x:BAYS[4].x,z:3.4,color:'#b47762'}];
+const keys=new Set(),pointers=new Map();
+const state={started:false,paused:false,mode:'parking',gear:'P',speed:0,x:20,z:18,heading:0,distance:0,offroad:false,rearView:false,guides:true,parked:false,parkingHold:0,contacts:0,contactLocked:false};
+const wheel={angle:0,velocity:0,target:0,dragging:false,pointer:null,lastPointerAngle:0,centering:false,load:0,weight:1.2};
+const mainCanvas=$('view'),mirrorCanvas=$('mirror'),mapCanvas=$('map');
+const parkingIntro=$('introBody').innerHTML;
+let last=0,notice='',noticeUntil=0,lastHint='',parkingChecks={position:false,angle:true,stop:true,park:true};
+const keyControls={ArrowUp:'accelerator',KeyW:'accelerator',ArrowDown:'brake',KeyS:'brake',Space:'brake',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',KeyB:'lookBack'};
+const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+const wrapAngle=a=>Math.atan2(Math.sin(a),Math.cos(a));
 function held(control){return [...keys].some(k=>keyControls[k]===control)||[...pointers.values()].includes(control);}
 function active(){return state.started&&!state.paused;}
-function clearControls(){keys.clear();pointers.clear();document.querySelectorAll('.held').forEach(b=>b.classList.remove('held'));}
-function notify(text){notice=text;noticeUntil=performance.now()+2600;}
+function notify(text){notice=text;noticeUntil=performance.now()+2800;}
+function clearControls(){keys.clear();pointers.clear();wheel.dragging=false;wheel.pointer=null;wheel.target=wheel.angle;wheel.centering=false;wheel.velocity=0;$('wheelGrip').classList.remove('dragging');document.querySelectorAll('.held').forEach(b=>b.classList.remove('held'));}
+function tireAngle(){return wheel.angle/MAX_WHEEL*.56;}
+function rearShown(){return held('lookBack')?!state.rearView:state.rearView;}
 function shift(gear){
- if(!active()){if(!state.started)notify('「ドライブを始める」を押してください');return;}
- if(gear===state.gear)return;
- if(gear!=='N'&&(!held('brake')||Math.abs(state.speed)>.14)){notify('停止して、ブレーキを踏みながらシフトを切り替えてください');return;}
+ if(!active()||gear===state.gear)return;
+ if(gear!=='N'&&(!held('brake')||Math.abs(state.speed)>.14)){notify('停止してブレーキを踏みながらシフトを切り替えてください');return;}
  state.gear=gear;
  if(gear==='P')state.speed=0;
- notify({P:'P：駐車しました',R:'R：後退します。後方に注意',N:'N：アクセルは駆動しません',D:'D：前進します。ブレーキを離すとゆっくり発進'}[gear]);
+ if(gear==='R')state.rearView=true;
+ if(gear==='D')state.rearView=false;
+ notify({P:'P：駐車位置を確認しています',R:'R：後方を表示中。ハンドルの切れ角に注意してゆっくり後退',N:'N：ニュートラル',D:'D：前方を表示中'}[gear]);
  updateGear();
 }
-function updateGear(){
- $('gearLabel').textContent=state.gear;$('driveStatus').textContent=gearNames[state.gear];
- document.querySelectorAll('[data-gear]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.gear===state.gear)));
+function updateGear(){$('gearLabel').textContent=state.gear;document.querySelectorAll('[data-gear]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.gear===state.gear)));}
+function reset(mode=state.mode){
+ Object.assign(state,{started:false,paused:false,mode,gear:'P',speed:0,x:mode==='parking'?20:roadCenter(-80),z:mode==='parking'?18:-80,heading:0,distance:0,offroad:false,rearView:false,parked:false,parkingHold:0,contacts:0,contactLocked:false});
+ Object.assign(wheel,{angle:0,velocity:0,target:0,dragging:false,pointer:null,centering:false,load:0});
+ clearControls();notice='';noticeUntil=0;parkingChecks={position:false,angle:true,stop:true,park:true};
+ $('overlay').hidden=false;$('introBody').hidden=false;$('introBody').innerHTML=mode==='parking'?parkingIntro:'<p>ハンドルの外周をマウスでドラッグして回します。停止中は重く、走行中は徐々に中央へ戻ります。</p><ol><li>Spaceでブレーキを踏み、4 / Dで前進</li><li>W / ↑で加速、マウスでハンドル操作</li><li>駐車練習ボタンで、03番へのバック駐車に挑戦</li></ol><p class="sub">V：前後切替 / B長押し：反対方向の確認</p>';$('pause').disabled=true;$('pause').textContent='一時停止';
+ $('introTitle').innerHTML=mode==='parking'?'ハンドルを握って、<br>バック駐車。':'マウスでハンドルを、<br>ゆっくり回そう。';
+ $('start').textContent=mode==='parking'?'練習を始める →':'ドライブを始める →';
+ $('parkingMode').setAttribute('aria-pressed',String(mode==='parking'));$('roadMode').setAttribute('aria-pressed',String(mode==='road'));
+ $('modeLabel').textContent=mode==='parking'?'PARKING PRACTICE / 03':'FREE DRIVE / 01';$('courseName').textContent=mode==='parking'?'緑の 03 番にバック駐車':'サンセット・ロード';
+ $('parkingStatus').textContent='目標：03番の駐車スペース';updateGear();
 }
-function pause(){if(!state.started)return;state.paused=!state.paused;clearControls();$('overlay').hidden=!state.paused;$('introTitle').textContent='ひと休み。';$('introBody').hidden=true;$('start').textContent='ドライブに戻る →';$('pause').textContent=state.paused?'再開':'一時停止';}
-function reset(){Object.assign(state,{started:false,paused:false,gear:'P',speed:0,x:0,z:0,heading:0,steer:0,distance:0,offroad:false});clearControls();notice='';noticeUntil=0;$('overlay').hidden=false;$('introTitle').textContent='気軽に、ひと走り。';$('introBody').hidden=false;$('start').textContent='ドライブを始める →';$('pause').textContent='一時停止';$('pause').disabled=true;updateGear();}
-$('start').onclick=()=>{if(state.started){if(state.paused)pause();return;}state.started=true;state.paused=false;$('overlay').hidden=true;$('pause').disabled=false;clearControls();notify('ブレーキを踏みながら D を選択してください');};
-$('pause').onclick=pause;$('reset').onclick=reset;
+function pause(){if(!state.started)return;state.paused=!state.paused;clearControls();$('overlay').hidden=!state.paused;$('introTitle').textContent='ひと休み。';$('introBody').hidden=true;$('start').textContent='運転に戻る →';$('pause').textContent=state.paused?'再開':'一時停止';}
+$('start').onclick=()=>{if(state.started){if(state.paused)pause();return;}state.started=true;$('overlay').hidden=true;$('pause').disabled=false;clearControls();notify(state.mode==='parking'?'ブレーキを踏みながら R を選択してください':'ブレーキを踏みながら D を選択してください');};
+$('pause').onclick=pause;$('reset').onclick=()=>reset();$('parkingMode').onclick=()=>reset('parking');$('roadMode').onclick=()=>reset('road');
+$('centerWheel').onclick=()=>{if(active()){wheel.centering=true;wheel.target=0;}};
+$('viewButton').onclick=()=>{if(active())state.rearView=!state.rearView;};
+$('guidesButton').onclick=()=>{state.guides=!state.guides;$('guidesButton').setAttribute('aria-pressed',String(state.guides));$('guidesButton').textContent='後退ガイド '+(state.guides?'ON':'OFF');};
+$('steeringWeight').oninput=e=>{wheel.weight=Number(e.target.value);$('weightValue').textContent=wheel.weight.toFixed(1);};
 document.querySelectorAll('[data-gear]').forEach(b=>{b.addEventListener('pointerdown',e=>{e.preventDefault();shift(b.dataset.gear);});b.onclick=()=>shift(b.dataset.gear);});
-for(const control of ['left','right','brake','accelerator']){
- const b=$(control);
- b.addEventListener('pointerdown',e=>{if(!active())return;e.preventDefault();b.setPointerCapture(e.pointerId);pointers.set(e.pointerId,control);b.classList.add('held');});
- const release=e=>{pointers.delete(e.pointerId);b.classList.toggle('held',held(control));};
- b.addEventListener('pointerup',release);b.addEventListener('pointercancel',release);b.addEventListener('lostpointercapture',release);
+for(const control of ['brake','accelerator']){
+ const b=$(control);b.addEventListener('pointerdown',e=>{if(!active())return;e.preventDefault();b.setPointerCapture(e.pointerId);pointers.set(e.pointerId,control);});
+ const release=e=>pointers.delete(e.pointerId);for(const type of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(type,release);
  b.addEventListener('contextmenu',e=>e.preventDefault());
 }
+function pointerAngle(e){const r=$('wheelGrip').getBoundingClientRect();return Math.atan2(e.clientY-r.top-r.height/2,e.clientX-r.left-r.width/2);}
+$('wheelGrip').addEventListener('pointerdown',e=>{
+ if(!active()||e.button!==0)return;e.preventDefault();
+ wheel.dragging=true;wheel.pointer=e.pointerId;wheel.centering=false;wheel.target=wheel.angle;wheel.lastPointerAngle=pointerAngle(e);
+ $('wheelGrip').setPointerCapture(e.pointerId);$('wheelGrip').classList.add('dragging');$('wheelGrip').focus({preventScroll:true});
+});
+$('wheelGrip').addEventListener('pointermove',e=>{
+ if(!wheel.dragging||e.pointerId!==wheel.pointer)return;
+ const angle=pointerAngle(e),delta=wrapAngle(angle-wheel.lastPointerAngle);wheel.lastPointerAngle=angle;
+ wheel.target=clamp(wheel.target+delta,-MAX_WHEEL,MAX_WHEEL);
+});
+function releaseWheel(e){if(e.pointerId!==wheel.pointer)return;wheel.dragging=false;wheel.pointer=null;wheel.target=wheel.angle;$('wheelGrip').classList.remove('dragging');}
+for(const type of ['pointerup','pointercancel','lostpointercapture'])$('wheelGrip').addEventListener(type,releaseWheel);
+$('wheelGrip').addEventListener('contextmenu',e=>e.preventDefault());
 window.addEventListener('keydown',e=>{
+ if(e.target instanceof HTMLInputElement&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(e.code))return;
  if(e.code==='Escape'&&state.started){e.preventDefault();if(!e.repeat)pause();return;}
  if(!active())return;
  if(keyControls[e.code]){e.preventDefault();keys.add(e.code);}
  if(/^Digit[1-4]$/.test(e.code)){e.preventDefault();if(!e.repeat)shift(['P','R','N','D'][Number(e.code.slice(-1))-1]);}
+ if(e.code==='KeyV'){e.preventDefault();if(!e.repeat)state.rearView=!state.rearView;}
+ if(e.code==='KeyC'){e.preventDefault();wheel.centering=true;wheel.target=0;}
 });
-window.addEventListener('keyup',e=>{keys.delete(e.code);});
+window.addEventListener('keyup',e=>keys.delete(e.code));
 window.addEventListener('blur',()=>{clearControls();if(active())pause();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){clearControls();if(active())pause();}});
-function roadCenter(z){return 40*Math.sin(z/250)+25*Math.sin(z/480);}
+function roadCenter(z){const t=clamp((Math.abs(z)-70)/130,0,1);return (40*Math.sin(z/250)+25*Math.sin(z/480))*t*t*(3-2*t);}
+function onPavement(x,z){return Math.abs(x-roadCenter(z))<=3.6||(x>=LOT.left&&x<=LOT.right&&z>=LOT.bottom&&z<=LOT.top);}
+function carCorners(x=state.x,z=state.z,heading=state.heading){const s=Math.sin(heading),c=Math.cos(heading);return [[-1,-1],[1,-1],[1,1],[-1,1]].map(([side,end])=>({x:x+side*CAR_WIDTH/2*c+end*CAR_LENGTH/2*s,z:z-side*CAR_WIDTH/2*s+end*CAR_LENGTH/2*c}));}
+function overlapsParked(car){
+ const ours=carCorners(),theirs=carCorners(car.x,car.z,0);
+ const axes=[{x:1,z:0},{x:0,z:1},{x:Math.cos(state.heading),z:-Math.sin(state.heading)},{x:Math.sin(state.heading),z:Math.cos(state.heading)}];
+ return axes.every(axis=>{const a=ours.map(p=>p.x*axis.x+p.z*axis.z),b=theirs.map(p=>p.x*axis.x+p.z*axis.z);return Math.max(...a)>Math.min(...b)&&Math.max(...b)>Math.min(...a);});
+}
+function stepWheel(dt){
+ const speed=Math.abs(state.speed),keyboard=(held('right')?1:0)-(held('left')?1:0);
+ if(keyboard){wheel.centering=false;wheel.target=clamp(wheel.target+keyboard*2.5*dt,-MAX_WHEEL,MAX_WHEEL);}
+ const driven=wheel.dragging||keyboard!==0||wheel.centering;
+ const input=driven?(wheel.target-wheel.angle)*36:0;
+ const aligning=speed>.12?-wheel.angle*(.3+Math.min(speed,28)*.32):0;
+ const notch=-Math.sin(wheel.angle*18)*.5*Math.exp(-Math.abs(wheel.angle)*3);
+ let torque=input+aligning+notch;
+ const friction=wheel.weight*(.9+1.7/(1+speed))*(wheel.centering?.12:1);
+ wheel.load=clamp(Math.abs(input)/18+friction/12,0,1);
+ if(Math.abs(wheel.velocity)<.035&&Math.abs(torque)<=friction)wheel.velocity=0;
+ else{torque-=Math.sign(wheel.velocity||torque)*friction;wheel.velocity+=(torque-(5.8+wheel.weight)*wheel.velocity)*dt/.85;}
+ const limit=4.8/(1+wheel.weight*.2);wheel.velocity=clamp(wheel.velocity,-limit,limit);
+ wheel.angle+=wheel.velocity*dt;
+ if(Math.abs(wheel.angle)>MAX_WHEEL){wheel.angle=clamp(wheel.angle,-MAX_WHEEL,MAX_WHEEL);wheel.velocity=0;}
+ if(wheel.centering&&Math.abs(wheel.angle)<.025&&Math.abs(wheel.velocity)<.2){wheel.angle=0;wheel.velocity=0;wheel.centering=false;}
+ if(!driven)wheel.target=wheel.angle;
+}
+function checkParking(dt){
+ const corners=carCorners();
+ parkingChecks.position=corners.every(p=>p.x>TARGET.x-TARGET.width/2+.06&&p.x<TARGET.x+TARGET.width/2-.06&&p.z>TARGET.z-TARGET.length/2+.06&&p.z<TARGET.z+TARGET.length/2-.06);
+ parkingChecks.angle=Math.abs(Math.sin(state.heading))<Math.sin(7*Math.PI/180);
+ parkingChecks.stop=Math.abs(state.speed)<.03;parkingChecks.park=state.gear==='P';
+ const valid=Object.values(parkingChecks).every(Boolean);
+ state.parkingHold=valid?state.parkingHold+dt:0;
+ if(state.parkingHold>.8&&!state.parked){state.parked=true;notify('駐車成功！03番の白線内に収まりました');}
+ if(!valid)state.parked=false;
+}
 function step(dt){
  if(!active())return;
+ stepWheel(dt);
  const brake=held('brake'),gas=held('accelerator'),v=state.speed,abs=Math.abs(v);
- const target=(held('right')?1:0)-(held('left')?1:0);
- state.steer+=(target-state.steer)*Math.min(1,dt*7);
- state.offroad=Math.abs(state.x-roadCenter(state.z))>3.6;
+ state.offroad=!onPavement(state.x,state.z);
  if(state.gear==='P')state.speed=0;
  else if(brake)state.speed=Math.sign(v)*Math.max(0,abs-8.5*dt);
  else{
   const direction=state.gear==='D'?1:state.gear==='R'?-1:0;
   let acceleration=0;
-  if(direction){
-   if(gas)acceleration=direction*(3.5-.03*abs-.003*abs*abs);
-   else if(abs<1.3&&Math.sign(v||direction)===direction)acceleration=direction*.9;
-  }
-  const drag=(.12+.008*abs*abs+(state.offroad?1.4+.06*abs:0))*Math.sign(v);
-  const next=v+(acceleration-drag)*dt;
-  state.speed=acceleration===0&&v*next<0?0:next;
-  state.speed=Math.max(-5.55,Math.min(30.55,state.speed));
+  if(direction){if(gas)acceleration=direction*(3.3-.03*abs-.003*abs*abs);else if(abs<.8&&Math.sign(v||direction)===direction)acceleration=direction*.65;}
+  const drag=(.12+.008*abs*abs+(state.offroad?1.4+.06*abs:0))*Math.sign(v),next=v+(acceleration-drag)*dt;
+  state.speed=acceleration===0&&v*next<0?0:next;state.speed=clamp(state.speed,-4.16,30.55);
  }
- state.heading+=state.speed/2.7*Math.tan(state.steer*.48/(1+Math.abs(state.speed)/9))*dt;
- state.heading=Math.max(-.8,Math.min(.8,state.heading));
- state.x+=Math.sin(state.heading)*state.speed*dt;
- state.z+=Math.cos(state.heading)*state.speed*dt;
- // Keep the course reachable even after long steering input.
- const center=roadCenter(state.z);
- state.x=Math.max(center-28,Math.min(center+28,state.x));
- state.distance+=Math.abs(state.speed)*dt;
+ const before={x:state.x,z:state.z,heading:state.heading};
+ state.heading=wrapAngle(state.heading+state.speed/2.7*Math.tan(tireAngle())*dt);
+ state.x+=Math.sin(state.heading)*state.speed*dt;state.z+=Math.cos(state.heading)*state.speed*dt;
+ if(PARKED.some(overlapsParked)){
+  Object.assign(state,before);if(!state.contactLocked&&Math.abs(state.speed)>.001){state.contacts++;notify('駐車車両に接触しました。ブレーキで止まり、切り返してください');}state.speed=0;state.contactLocked=true;
+ }else{state.contactLocked=false;state.distance+=Math.abs(state.speed)*dt;}
+ checkParking(dt);
 }
-function resize(){const r=canvas.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);W=r.width;H=r.height;canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
-new ResizeObserver(resize).observe(canvas);
-function polygon(points,color){if(points.some(p=>!p))return;ctx.fillStyle=color;ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.fill();}
-function project(x,z){const dx=x-state.x,dz=z-state.z,c=Math.cos(state.heading),s=Math.sin(state.heading),depth=dz*c+dx*s;return depth>.9?{x:W*.5+(dx*c-dz*s)*W*.83/depth,y:H*.43+1.65*W*.83/depth,scale:W*.83/depth}:null;}
-function render(){
- if(!W||!H)return;
- const horizon=H*.43;
- const sky=ctx.createLinearGradient(0,0,0,horizon+50);sky.addColorStop(0,'#6489a6');sky.addColorStop(.65,'#c2c1b7');sky.addColorStop(1,'#ffd4ab');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
- const sunX=W*.73-state.heading*W*.35;ctx.fillStyle='#ffe1b1';ctx.beginPath();ctx.arc(sunX,horizon-45,Math.max(18,W*.026),0,Math.PI*2);ctx.fill();
- for(let layer=0;layer<2;layer++){
-  const pts=[{x:0,y:horizon+15}];for(let i=0;i<=24;i++){const x=W*i/24;pts.push({x,y:horizon-10-(Math.sin(i*.6+layer*2)+Math.sin(i*1.7+layer))*(layer?10:17)-(layer?4:16)});}pts.push({x:W,y:horizon+15});polygon(pts,layer?'#78908a':'#81959c');
+// Near-plane clipping keeps all views valid, including a full turn and reversing.
+function cameraFor(rear=false){const offset=rear?-2.12:.6;return{x:state.x+Math.sin(state.heading)*offset,z:state.z+Math.cos(state.heading)*offset,yaw:state.heading+(rear?Math.PI:0),height:rear?1.05:1.55,rear};}
+function transform(p,cam){const dx=p.x-cam.x,dz=p.z-cam.z,c=Math.cos(cam.yaw),s=Math.sin(cam.yaw);return{x:dx*c-dz*s,z:dz*c+dx*s,y:p.y||0};}
+function clipNear(points){const out=[];for(let i=0;i<points.length;i++){const a=points[i],b=points[(i+1)%points.length],insideA=a.z>=.35,insideB=b.z>=.35;if(insideA)out.push(a);if(insideA!==insideB){const t=(.35-a.z)/(b.z-a.z);out.push({x:a.x+(b.x-a.x)*t,z:.35,y:a.y+(b.y-a.y)*t});}}return out;}
+function projectPoint(p,cam,w,h){const v=transform(p,cam);if(v.z<.35)return null;return{x:w/2+(cam.rear?-1:1)*v.x*w*.76/v.z,y:h*(cam.rear?.38:.43)+(cam.height-v.y)*w*.76/v.z};}
+function drawScene(canvas,rear,hood=false){
+ const r=canvas.getBoundingClientRect(),w=r.width,h=r.height,dpr=Math.min(devicePixelRatio||1,1.6);
+ if(!w||!h)return;
+ if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}
+ const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+ const cam=cameraFor(rear),horizon=h*(rear?.38:.43),sky=ctx.createLinearGradient(0,0,0,horizon+30);
+ sky.addColorStop(0,rear?'#8197aa':'#6489a6');sky.addColorStop(1,'#ffd4ab');ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);
+ ctx.fillStyle='#ffe1b1';ctx.beginPath();ctx.arc(w*(rear?.3:.73)-Math.sin(cam.yaw)*w*.16,horizon-32,Math.max(10,w*.023),0,TAU);ctx.fill();
+ ctx.fillStyle='#82958b';ctx.beginPath();ctx.moveTo(0,horizon+4);for(let i=0;i<=32;i++)ctx.lineTo(w*i/32,horizon-9-12*Math.sin(i*.7+cam.yaw)-8*Math.sin(i*1.8));ctx.lineTo(w,horizon+5);ctx.fill();
+ ctx.fillStyle='#929b71';ctx.fillRect(0,horizon+4,w,h-horizon);
+ const polygons=[];
+ function add(points,color,layer=2){const v=clipNear(points.map(p=>transform(p,cam)));if(v.length<3)return;const depth=v.reduce((a,p)=>a+p.z,0)/v.length;if(depth>520)return;polygons.push({v,color,depth,layer});}
+ function rect(x1,z1,x2,z2,color,y=0){add([{x:x1,z:z1,y},{x:x2,z:z1,y},{x:x2,z:z2,y},{x:x1,z:z2,y}],color,y===.018?0:y<=.12?1:2);}
+ const base=Math.floor(state.z/5)*5;
+ for(let i=-78;i<=78;i++){
+  const z1=base+i*5,z2=z1+5,c1=roadCenter(z1),c2=roadCenter(z2),stripe=Math.floor(z1/10)%2===0;
+  add([{x:c1-3.6,z:z1},{x:c1+3.6,z:z1},{x:c2+3.6,z:z2},{x:c2-3.6,z:z2}],stripe?'#525b5e':'#50595c',0);
+  for(const side of [-1,1])add([{x:c1+side*3.3-.045,z:z1,y:.008},{x:c1+side*3.3+.045,z:z1,y:.008},{x:c2+side*3.3+.045,z:z2,y:.008},{x:c2+side*3.3-.045,z:z2,y:.008}],'#e2ddc8',1);
+  if(stripe)add([{x:c1-.06,z:z1,y:.01},{x:c1+.06,z:z1,y:.01},{x:c2+.06,z:z2,y:.01},{x:c2-.06,z:z2,y:.01}],'#e8ddbd',1);
  }
- ctx.fillStyle='#9d9f6f';ctx.fillRect(0,horizon+6,W,H-horizon);
- const base=Math.floor(state.z/3)*3;
- for(let i=170;i>=1;i--){
-  const z1=base+i*3,z2=z1+3,c1=roadCenter(z1),c2=roadCenter(z2);
-  const a=project(c1-3.6,z1),b=project(c1+3.6,z1),c=project(c2+3.6,z2),d=project(c2-3.6,z2);
-  if(!a||!b||!c||!d)continue;
-  const stripe=Math.floor(z1/12)%2===0;
-  polygon([{x:0,y:a.y},{x:W,y:a.y},{x:W,y:d.y},{x:0,y:d.y}],stripe?'#8f9866':'#969e6c');
-  const al=project(c1-3.9,z1),bl=project(c2-3.9,z2),ar=project(c1+3.9,z1),br=project(c2+3.9,z2);
-  polygon([al,a,d,bl],stripe?'#e5d7bd':'#ba8d72');polygon([b,ar,br,c],stripe?'#e5d7bd':'#ba8d72');
-  polygon([a,b,c,d],stripe?'#50585a':'#525a5c');
-  for(const lateral of [-3.3,3.3])polygon([project(c1+lateral-.045,z1),project(c1+lateral+.045,z1),project(c2+lateral+.045,z2),project(c2+lateral-.045,z2)],'#e5e2cb');
-  if(Math.floor(z1/6)%2===0)polygon([project(c1-.055,z1),project(c1+.055,z1),project(c2+.055,z2),project(c2-.055,z2)],'#eee3bc');
+ // Small pavement tiles sort correctly against nearby road and cars.
+ for(let x=LOT.left;x<LOT.right;x+=3.2)for(let z=LOT.bottom;z<LOT.top;z+=3.2)rect(x,z,Math.min(x+3.2,LOT.right),Math.min(z+3.2,LOT.top),'#616c70',.018);
+ for(let i=0;i<BAYS.length;i++){
+  const bay=BAYS[i],left=bay.x-bay.width/2,right=bay.x+bay.width/2,bottom=bay.z-bay.length/2,top=bay.z+bay.length/2;
+  if(i===2)rect(left+.08,bottom+.08,right-.08,top-.08,state.parked?'#7bba9a':'#678e7c',.035);
+  rect(left-.045,bottom,left+.045,top,'#e5e9df',.045);rect(right-.045,bottom,right+.045,top,'#e5e9df',.045);rect(left,bottom,right,bottom+.09,'#e5e9df',.045);
+  rect(left+.6,bottom+.38,right-.6,bottom+.58,'#d0c9ad',.12);
+  // Spot numbers are painted using simple projected strokes below.
  }
- const firstTree=Math.floor((state.z-30)/24)*24;
- for(let i=27;i>=0;i--){const z=firstTree+i*24;for(const side of [-1,1]){
-  const p=project(roadCenter(z)+side*(11+3*Math.sin(z*.13+side)),z);if(!p||p.y<horizon||p.y>H*1.4)continue;
-  const h=p.scale*(3.1+.7*Math.sin(z)),w=h*.38;
-  ctx.fillStyle='#665c48';ctx.fillRect(p.x-w*.1,p.y-h*.5,w*.2,h*.5);
-  polygon([{x:p.x-w,y:p.y-h*.25},{x:p.x,y:p.y-h},{x:p.x+w,y:p.y-h*.25}],'#425e51');
-  polygon([{x:p.x-w*.8,y:p.y-h*.52},{x:p.x,y:p.y-h*1.16},{x:p.x+w*.8,y:p.y-h*.52}],'#526c58');
- }}
- // Hood and windscreen base.
- polygon([{x:W*.19,y:H},{x:W*.3,y:H*.87},{x:W*.7,y:H*.87},{x:W*.81,y:H}],'#324751');
- ctx.strokeStyle='#b9c8ca44';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(W*.3,H*.87);ctx.lineTo(W*.7,H*.87);ctx.stroke();
+ rect(LOT.right-.12,LOT.bottom,LOT.right,LOT.top,'#d0c2a4',.03);
+ function box(x,z,width,length,height,color){
+  const a={x:x-width/2,z:z-length/2,y:.05},b={x:x+width/2,z:z-length/2,y:.05},c={x:x+width/2,z:z+length/2,y:.05},d={x:x-width/2,z:z+length/2,y:.05};
+  const A={...a,y:height},B={...b,y:height},C={...c,y:height},D={...d,y:height};
+  add([a,b,B,A],color);add([b,c,C,B],color);add([c,d,D,C],color);add([d,a,A,D],color);add([A,B,C,D],color);
+ }
+ for(const car of PARKED){box(car.x,car.z,1.8,4.4,.72,car.color);box(car.x,car.z-.1,1.5,2.4,1.38,'#364c58');rect(car.x-.67,car.z-.9,car.x+.67,car.z+.5,car.color,1.4);}
+ // Trees are fixed in world space; the parking lot remains clear.
+ for(let i=-14;i<=14;i++)for(const side of [-1,1]){
+  const z=Math.floor(state.z/26)*26+i*26,x=roadCenter(z)+side*(13+3*Math.sin(z*.13));
+  if(x>LOT.left-3&&x<LOT.right+3&&z>LOT.bottom-5&&z<LOT.top+5)continue;
+  add([{x:x-.15,z,y:0},{x:x+.15,z,y:0},{x:x+.15,z,y:2},{x:x-.15,z,y:2}],'#6a604a');
+  add([{x:x-1.1,z,y:1.1},{x,z,y:4.1},{x:x+1.1,z,y:1.1}],'#466550');
+ }
+ polygons.sort((a,b)=>a.layer-b.layer||b.depth-a.depth);
+ for(const poly of polygons){ctx.fillStyle=poly.color;ctx.beginPath();poly.v.forEach((p,i)=>{const x=w/2+(cam.rear?-1:1)*p.x*w*.76/p.z,y=horizon+(cam.height-p.y)*w*.76/p.z;if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y);});ctx.closePath();ctx.fill();}
+ for(let i=0;i<BAYS.length;i++){
+  const bay=BAYS[i],p=projectPoint({x:bay.x,z:bay.z+bay.length/2+.7,y:.03},cam,w,h),v=transform({x:bay.x,z:bay.z+bay.length/2+.7},cam);
+  if(p&&v.z<100){ctx.fillStyle=i===2?'#ddffeb':'#e0e5df';ctx.font=`bold ${clamp(w*.76/v.z*.55,6,54)}px sans-serif`;ctx.textAlign='center';ctx.fillText(String(i+1).padStart(2,'0'),p.x,p.y);}
+ }
+ if(rear&&state.guides)drawGuides(ctx,cam,w,h);
+ if(hood&&!rear){ctx.fillStyle='#344b57';ctx.beginPath();ctx.moveTo(w*.18,h);ctx.lineTo(w*.29,h*.9);ctx.lineTo(w*.71,h*.9);ctx.lineTo(w*.82,h);ctx.fill();}
+}
+function drawGuides(ctx,cam,w,h){
+ let x=state.x-Math.sin(state.heading)*2.2,z=state.z-Math.cos(state.heading)*2.2,heading=state.heading;
+ const left=[],right=[];
+ for(let i=0;i<=32;i++){
+  left.push({x:x-Math.cos(heading)*1.02,z:z+Math.sin(heading)*1.02,y:.07});right.push({x:x+Math.cos(heading)*1.02,z:z-Math.sin(heading)*1.02,y:.07});
+  heading-=.24/2.7*Math.tan(tireAngle());x-=Math.sin(heading)*.24;z-=Math.cos(heading)*.24;
+ }
+ ctx.lineWidth=2;
+ for(let i=3;i<32;i++){
+  ctx.strokeStyle=i<8?'#ff9c8e':i<18?'#ffe399':'#b6f4d0';
+  for(const line of [left,right]){const a=projectPoint(line[i],cam,w,h),b=projectPoint(line[i+1],cam,w,h);if(a&&b){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}}
+  if(i===6||i===15||i===28){const a=projectPoint(left[i],cam,w,h),b=projectPoint(right[i],cam,w,h);if(a&&b){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}}
+ }
+}
+function drawMap(){
+ const ctx=mapCanvas.getContext('2d');ctx.setTransform(2,0,0,2,0,0);ctx.fillStyle='#283a40';ctx.fillRect(0,0,157,122);
+ const scale=1.65,ox=20,oz=87,point=(x,z)=>({x:ox+x*scale,y:oz-z*scale});
+ const l=point(LOT.left,LOT.top),r=point(LOT.right,LOT.bottom);ctx.fillStyle='#59656b';ctx.fillRect(l.x,l.y,r.x-l.x,r.y-l.y);ctx.fillStyle='#435258';ctx.fillRect(ox-3.6*scale,0,7.2*scale,122);
+ for(let i=0;i<BAYS.length;i++){const b=BAYS[i],p=point(b.x-b.width/2,b.z+b.length/2);ctx.fillStyle=i===2?'#7fae92':'#657176';ctx.fillRect(p.x,p.y,b.width*scale,b.length*scale);ctx.strokeStyle=i===2?'#c9ffe0':'#d2dad4';ctx.strokeRect(p.x,p.y,b.width*scale,b.length*scale);}
+ for(const car of PARKED){const p=point(car.x-.9,car.z+2.2);ctx.fillStyle=car.color;ctx.fillRect(p.x,p.y,1.8*scale,4.4*scale);}
+ const corners=carCorners().map(p=>point(p.x,p.z));ctx.fillStyle=state.parked?'#ffdc93':'#b6f4d0';ctx.beginPath();corners.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.fill();
+ const c=point(state.x,state.z),nose=point(state.x+Math.sin(state.heading)*3.5,state.z+Math.cos(state.heading)*3.5);ctx.strokeStyle='#e1fff0';ctx.beginPath();ctx.moveTo(c.x,c.y);ctx.lineTo(nose.x,nose.y);ctx.stroke();
+ const target=point(TARGET.x,TARGET.z);ctx.fillStyle='#d9ffe8';ctx.font='8px sans-serif';ctx.textAlign='left';ctx.fillText('03',target.x-4,target.y+16);
+ const outside=c.x<0||c.x>157||c.y<0||c.y>122;
+ if(outside){ctx.fillStyle='#ffe0a3';ctx.textAlign='center';ctx.fillText('自車はマップの外',78,114);}
 }
 function ui(now){
- $('speed').textContent=Math.round(Math.abs(state.speed)*3.6);
- $('distance').textContent=(state.distance/1000).toFixed(2)+' km';
- $('wheel').style.transform=`rotate(${state.steer*115}deg)`;
- const rpm=!state.started?0:state.gear==='P'||state.gear==='N'?held('accelerator')&&active()?2200:750:750+Math.abs(state.speed)*80+(held('accelerator')&&active()?400:0);
- $('rpm').textContent=Math.round(rpm/50)*50+' RPM';$('rpmBar').style.width=Math.min(100,rpm/4000*100)+'%';
- $('progress').style.width=(state.distance%1000)/10+'%';
- const reached=Math.floor(state.distance/1000);$('milestone').textContent=reached?`${reached} km 達成！ 次の目標まで ${Math.ceil(1000-state.distance%1000)} m`:'まずは 1 km のドライブへ。';
- let text=now<noticeUntil?notice:state.offroad?'コース外です。減速して道路へ戻りましょう':state.gear==='P'?'ブレーキを踏みながら D を選択してください':state.gear==='R'?'R：後退中 / ブレーキで停止できます':state.gear==='N'?'N：ニュートラル / 惰性で進みます':held('brake')?'ブレーキ作動中':Math.abs(state.speed)<2?'D：クリープ走行 / アクセルで加速':'道路に沿って、ゆっくりハンドルを操作しましょう';
- if(text!==lastHint){$('hint').textContent=text;lastHint=text;}
- $('hint').classList.toggle('warn',state.offroad||now<noticeUntil);
- for(const control of ['left','right','brake','accelerator'])$(control).classList.toggle('held',active()&&held(control));
+ $('speed').textContent=Math.round(Math.abs(state.speed)*3.6);const degrees=Math.round(wheel.angle*180/Math.PI);
+ $('wheel').style.transform=`rotate(${degrees}deg)`;$('wheelAngle').textContent=(degrees>0?'+':'')+degrees+'°';$('wheelGrip').setAttribute('aria-valuenow',degrees);
+ $('wheelLoad').style.width=Math.round(wheel.load*100)+'%';$('wheelFeel').textContent=wheel.dragging?'マウスで操舵中':Math.abs(state.speed)>.5?'走行中：徐々に戻る':'停止中：切れ角を保持';
+ const rear=rearShown();$('cameraLabel').textContent=rear?'後方カメラ（鏡像）':'前方を確認中';$('mirrorLabel').textContent=rear?'前方確認':'後方確認';
+ $('viewButton').textContent=(rear?'前方を見る':'後方を見る')+' · V';$('viewButton').setAttribute('aria-pressed',String(rear));
+ for(const [key,id] of [['position','checkPosition'],['angle','checkAngle'],['stop','checkStop'],['park','checkPark']])$(id).classList.toggle('ok',parkingChecks[key]);
+ const distance=Math.hypot(state.x-TARGET.x,state.z-TARGET.z);
+ $('positionHint').textContent=state.mode==='parking'?`03番まで ${distance.toFixed(1)} m / 接触 ${state.contacts} 回`:`走行距離 ${(state.distance/1000).toFixed(2)} km / 駐車場は原点付近`;
+ const status=state.parked?'駐車成功！白線内・停止・Pを確認しました':parkingChecks.position&&parkingChecks.angle?'位置OK。停止してPに入れてください':'目標：緑の03番にバック駐車';
+ if($('parkingStatus').textContent!==status)$('parkingStatus').textContent=status;
+ let text=now<noticeUntil?notice:state.parked?'駐車成功！リセットで再挑戦できます':state.offroad?'舗装の外です。減速して戻りましょう':wheel.dragging?'ハンドル操舵中：急がず、ゆっくり回してください':state.gear==='P'?'ブレーキを踏みながら '+(state.mode==='parking'?'R':'D')+' を選択':state.gear==='R'?'R：バック走行。上空図と前後の映像を確認しましょう':held('brake')?'ブレーキ作動中':'V：前後切替 / マウスでハンドルを回す';
+ if(text!==lastHint){$('hint').textContent=text;lastHint=text;}$('hint').classList.toggle('warn',state.offroad||now<noticeUntil);
+ for(const id of ['brake','accelerator'])$(id).classList.toggle('held',active()&&held(id));
 }
-function frame(now){const dt=last?Math.min((now-last)/1000,.035):0;last=now;step(dt);render();ui(now);requestAnimationFrame(frame);}
-resize();requestAnimationFrame(frame);
+function frame(now){const dt=last?Math.min((now-last)/1000,.03):0;last=now;step(dt);drawScene(mainCanvas,rearShown(),true);drawScene(mirrorCanvas,!rearShown(),false);drawMap();ui(now);requestAnimationFrame(frame);}
+reset();requestAnimationFrame(frame);
 </script>
 </body></html>
