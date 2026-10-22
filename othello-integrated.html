@@ -1346,6 +1346,19 @@ body.theme-custom { background-color: var(--cs-bg1, #312e81); color: #f5f3ff; }
 @media (min-width: 640px) { .pf-orbit { --r: 26px; } }
 .pf-av .pf-orbit { --r: 44px; --fs: 15px; --dur: 10s; }
 @media (prefers-reduced-motion: reduce) { .pf-oi { animation: none; } .pf-os { animation: none; transform: rotate(calc(360deg * var(--i) / var(--n))) translateY(calc(var(--r) * -1)) rotate(calc(-360deg * var(--i) / var(--n))); } }
+/* CPU撃破称号：色を保ったネオン発光と流れるハイライト */
+.pf-title-glow {
+  color: var(--pf-glow) !important;
+  background: linear-gradient(110deg, var(--pf-glow) 28%, #fff 48%, var(--pf-glow) 66%) 100% 0 / 260% 100%;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 7px var(--pf-glow), 0 0 17px var(--pf-glow);
+  animation: pfTitleShine 4s ease-in-out infinite;
+}
+@keyframes pfTitleShine { 0%, 15% { background-position: 100% 0; } 70%, 100% { background-position: 0% 0; } }
+.pf-earned-ring { box-shadow: 0 0 0 2px var(--pf-glow), 0 0 14px var(--pf-glow), 0 0 26px var(--pf-glow) !important; }
+.pf-tile.pf-earned { border-color: var(--pf-glow); box-shadow: inset 0 0 14px -9px var(--pf-glow), 0 0 12px -7px var(--pf-glow); }
+.pf-earned .pf-dot { box-shadow: 0 0 7px var(--pf-glow), 0 0 16px var(--pf-glow); border: 1px solid #ffffffb3; }
+@media (prefers-reduced-motion: reduce) { .pf-title-glow { animation: none; background-position: 45% 0; } }
 /* シークレット称号「虹の覇者」：虹色に流れる文字＋白い光、アイコンの縁も虹色に白く光る */
 .pf-rb-text { background: linear-gradient(90deg, #ff3b3b, #ff9f1c, #ffe94d, #3ddc84, #38bdf8, #6366f1, #d946ef, #ff3b3b) 0 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent !important; -webkit-text-fill-color: transparent; animation: pfRbSlide 3s linear infinite; filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 7px rgba(255,255,255,.65)); }
 @keyframes pfRbSlide { to { background-position: 200% 0; } }
@@ -7006,10 +7019,17 @@ achRefresh();
         }
         el.appendChild(o);
     }
+    function titleGlow(el, color, ring = false) {
+        if (!el) return;
+        el.classList.toggle(ring ? 'pf-earned-ring' : 'pf-title-glow', !!color);
+        if (color) el.style.setProperty('--pf-glow', color);
+        else el.style.removeProperty('--pf-glow');
+    }
     function setAvatar(el, v, def) {
         if (!el) return;
         const rb = !!(v && v.rb);
         el.classList.toggle('pf-rb-ring', rb);
+        titleGlow(el, !rb && v && v.color, true);
         el.style.boxShadow = !rb && v && v.color ? `0 0 0 2px ${v.color}` : '';
         el.textContent = '';
         if (v && v.photo) {
@@ -7025,6 +7045,7 @@ achRefresh();
     function setCard(prefix, labelEl, titleEl, avEl, v, defLabel, defAv, side) {
         if (labelEl) labelEl.textContent = v ? `${v.name} (${side})` : defLabel;
         if (titleEl) {
+            titleGlow(titleEl, v && !v.rb && v.color);
             if (v) { titleEl.style.display = ''; titleEl.textContent = v.titleText; titleEl.classList.toggle('pf-rb-text', !!v.rb); titleEl.style.color = v.rb ? '' : (v.color || '#9ca3af'); }
             else titleEl.style.display = 'none';
         }
@@ -7049,6 +7070,7 @@ achRefresh();
     function avatarInto(el, v) {
         el.textContent = ''; el.style.borderColor = v.color || '#64748b';
         el.classList.toggle('pf-rb-ring', !!v.rb);
+        titleGlow(el, !v.rb && v.color, true);
         if (v.photo) { const im = document.createElement('img'); im.alt = ''; im.src = v.photo; el.appendChild(im); }
         else el.textContent = v.icon;
         setOrbit(el, v.stars, v.color);
@@ -7060,6 +7082,7 @@ achRefresh();
         const t = PF.title && wins(PF.title) > 0 ? PF.title : '';
         const pt = $('pfPrevTitle'), ps = $('pfPrevSub');
         pt.classList.toggle('pf-rb-text', rbOn());
+        titleGlow(pt, !v.rb && v.color);
         if (rbOn()) {
             pt.textContent = SECRET_NAME; pt.style.color = '';
             ps.textContent = '全実績解除 ＋ 全難易度★6 · ★6 / 6';
@@ -7107,7 +7130,12 @@ achRefresh();
         }
         LV.forEach(([k, lab, col, hex]) => {
             const n = wins(k);
-            if (n > 0) tl.appendChild(mk(t === k ? 'sel' : '', hex, `${lab} · ${col}`, `${n} / ${MAXW}勝 · ★${stars(n)}`, () => { PF.title = k; commit(); }));
+            if (n > 0) {
+                const tile = mk((t === k ? 'sel ' : '') + 'pf-earned', hex, `${lab} · ${col}`, `${n} / ${MAXW}勝 · ★${stars(n)}`, () => { PF.title = k; commit(); });
+                tile.style.setProperty('--pf-glow', hex);
+                titleGlow(tile.querySelector('.pf-tn'), hex);
+                tl.appendChild(tile);
+            }
             else tl.appendChild(mk('lock', hex, `${lab} · ${col} 🔒`, `${lab}に初勝利で解放`, null));
         });
     }
