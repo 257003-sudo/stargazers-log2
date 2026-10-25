@@ -621,7 +621,7 @@ SOFTWARE.
     <div id="inmuOverlay" class="fixed inset-0 pointer-events-none z-[49] hidden items-center justify-center overflow-hidden"></div>
 
     <!-- Header & Controls -->
-    <header class="w-full max-w-6xl flex flex-nowrap justify-between items-center mb-2 px-2 gap-2">
+    <header class="w-full max-w-6xl flex flex-nowrap justify-between items-center mb-2 px-2 gap-2" id="gameHeader">
         <div class="flex items-center space-x-2 sm:space-x-3 min-w-0">
             <i class="fa-solid fa-gem text-cyan-400 text-2xl sm:text-3xl theme-text shrink-0"></i>
             <div class="min-w-0">
@@ -1027,7 +1027,7 @@ SOFTWARE.
                             <h4 class="font-bold text-purple-400 text-sm sm:text-base mb-1.5">🔄 5. 強奪変換（Steal Convert）</h4>
                             <div class="space-y-1.5 text-xs sm:text-[13px]">
                                 <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">概要</span>敵コマ直接強奪</p>
-                                <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">効果詳細</span>盤面上にある相手の駒を1つ直接指定し、自分の色へ奪い取って直接変換します。奪った位置からさらに周囲の相手駒を挟める場合は、連鎖反転が発生します。</p>
+                                <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">効果詳細</span>盤面上にある相手の駒を1つ直接指定し、自分の色へ奪い取って直接変換します。反転するのは指定した1枚だけで、周囲の駒への連鎖反転は発生しません。</p>
                                 <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">制限</span>四隅（角）にある駒やシールド駒は指定できません。</p>
                                 <p><span class="inline-block w-14 text-center bg-gray-700 px-1 rounded text-white mr-1 text-[11px]">戦術活用</span>相手の連鎖やラインの核となっている重要な駒をダイレクトに奪い取り、敵の戦術を根本から崩壊させられます。</p>
                                 <p><span class="inline-block w-14 text-center bg-red-900/70 px-1 rounded text-red-200 mr-1 text-[11px]">期限</span>獲得した分ごとに、自分の手番が<b>5ターン</b>過ぎると失効します。残り1ターンになるとカードが赤く点滅します。</p>
@@ -1346,6 +1346,7 @@ body.theme-custom { background-color: var(--cs-bg1, #312e81); color: #f5f3ff; }
 @media (min-width: 640px) { .pf-orbit { --r: 26px; } }
 .pf-av .pf-orbit { --r: 44px; --fs: 15px; --dur: 10s; }
 @media (prefers-reduced-motion: reduce) { .pf-oi { animation: none; } .pf-os { animation: none; transform: rotate(calc(360deg * var(--i) / var(--n))) translateY(calc(var(--r) * -1)) rotate(calc(-360deg * var(--i) / var(--n))); } }
+@media (max-width: 639px) { #gameHeader { flex-wrap: wrap; } #gameHeader > div:last-child { margin-left: auto; } }
 /* CPU撃破称号：色を保ったネオン発光と流れるハイライト */
 .pf-title-glow {
   color: var(--pf-glow) !important;
@@ -2358,7 +2359,7 @@ function endItemTurn(p) {
             const opponent = player === BLACK ? WHITE : BLACK;
             const skills = player === BLACK ? state.playerSkills : state.cpuSkills;
             const who = player === BLACK ? 'P1' : (state.gameMode === 'vs2p' ? 'P2' : 'CPU');
-            const effect = [0, 1, 2, 4, 5][Math.floor(Math.random() * 5)];
+            const effect = Math.floor(Math.random() * 6);
 
             if (effect === 0) {
                 await triggerSkillCutin('box:スキル2個GET！', player);
@@ -2381,6 +2382,11 @@ function endItemTurn(p) {
                 await triggerSkillCutin('box:INMUPOWER GET!!', player);
                 skills.inmu = (skills.inmu || 0) + 1;
                 setMessage(`❓ ${who}: 特殊スキル【👹 INMUPOWER】を獲得！`);
+            } else if (effect === 3) {
+                await triggerSkillCutin('box:全スキル没収…', player);
+                Object.keys(skills).forEach(k => { skills[k] = 0; });
+                state.itemExpiry[player] = { steal: [], warp: [] };
+                setMessage(`❓ ${who}: 持っているスキルを全て没収された…`);
             } else if (effect === 4) {
                 await triggerSkillCutin('box:自駒に毒×2！', player);
                 const cells = [];
@@ -3150,7 +3156,7 @@ function endItemTurn(p) {
                     playSound('bomb');
                     await fxSteal(r, c);
                     state.board[r][c] = currentTurn;
-                    let totalFlippedCount = 1; // 奪った駒自体も被弾に含める
+                    const totalFlippedCount = 1; // 強奪対象の1枚だけを被弾に含める
                     let triggeredPoison = false;
 
                     if (state.poisonTrap[r][c]) {
@@ -3158,11 +3164,10 @@ function endItemTurn(p) {
                         state.poisonTrap[r][c] = false;
                     }
 
-                    const directions = DIRS8;
+                    // 強奪は指定した1枚だけを反転する（挟み込みによる連鎖なし）。
                     renderBoard();
                     updateScores();
                     await sleep(480);
-                    { const _all = []; for (let [dr, dc] of directions) { _all.push(...getFlippableInDirection(r, c, dr, dc, currentTurn)); } await flipSimul(r, c, _all, currentTurn, (disc) => { if (state.poisonTrap[disc.r][disc.c]) { triggeredPoison = true; state.poisonTrap[disc.r][disc.c] = false; } totalFlippedCount++; }); }
 
                     createExplosion(posX, posY, currentTurn === BLACK ? '#a855f7' : '#ec4899', 25);
                     hooks.emit('stealFlips', currentTurn, totalFlippedCount, r, c);
@@ -3857,7 +3862,7 @@ function endItemTurn(p) {
   // ---- UI ----
   const ui = document.createElement('div');
   ui.innerHTML = `
-  <button id="netOpen" class="fixed bottom-3 right-3 z-40 bg-gradient-to-r from-emerald-500 to-cyan-600 text-white text-sm font-bold py-2 px-4 rounded-full shadow-lg active:scale-95">🌐 オンライン対戦</button>
+  <button id="netOpen" type="button" class="bg-gradient-to-r from-emerald-500 to-cyan-600 text-white text-xs sm:text-sm font-bold py-1.5 px-3 rounded-lg shadow-lg active:scale-95">🌐 オンライン対戦</button>
   <div id="netBanner" class="hidden fixed top-1 left-1/2 -translate-x-1/2 z-40 text-xs bg-black/70 text-emerald-300 px-3 py-1 rounded-full"></div>
   <div id="netPanel" class="hidden fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4">
     <div class="w-full max-w-sm rounded-2xl bg-gray-900 text-gray-100 border border-emerald-500/50 p-5 space-y-3">
@@ -3891,6 +3896,8 @@ function endItemTurn(p) {
     </div>
   </div>`;
   document.body.appendChild(ui);
+  const menuButton = $('menuBtn');
+  menuButton.parentElement.insertBefore($('netOpen'), menuButton);
   $('netOpen').onclick = () => $('netPanel').classList.remove('hidden');
   $('netClose').onclick = () => $('netPanel').classList.add('hidden');
   $('netHost').onclick = () => { $('netRoom').classList.add('hidden'); $('netStage').classList.remove('hidden'); status('ステージを選んでください'); };
@@ -4040,10 +4047,10 @@ const T=[
 {t:'🛡️ シールド',h:'<p>置いた駒が<b>金色のシールド駒</b>になります。この駒は、これから先<b>絶対にひっくり返されません</b>。</p><p><b>使いどころ：</b>角や、どうしても守りたい場所。</p><p>置いたあとに、白がはさみにくるとどうなるか見てみましょう。</p>',b:['........','........','........','...WBW..','........','........','........','........'],p:[{u:'shield',ts:[[3,2]],q:'光るマスにシールド駒を置こう',ok:'金色のシールド駒を置きました！'},{x:[3,1],msg:'⚪ 白が左はしからはさもうとすると… ✕ 置けません！'}],ok:'シールド駒をはさむ位置には置けません！この駒は取られません。'},
 {t:'🧪 毒盤',h:'<p>自分の駒に<b>毒（☠）</b>をしかけます。相手がその駒をひっくり返すと、<b>相手は1回休み</b>になります。</p><div class="tt-flow"><span>① 毒をしかける</span><i>→</i><span>② 1手打つ</span><i>→</i><span>③ 白が毒の駒を取る</span><i>→</i><span>④ 白は1回休み</span><i>→</i><span>⑤ <b>2回続けて打てる！</b></span></div><p><b>使いどころ：</b>相手が取りたがりそうな駒に。</p>',b:['........','........','........','...BW...','...WB...','........','........','........'],p:[{u:'poison',ts:[[3,3]],q:'① 毒をしかける黒駒（光っている駒）をタップ',ok:'☠をしかけました！'},{u:'move',ts:[[3,5]],q:'② ふつうに1手打つ（光るマス）',ok:'白の番です…'},{a:[2,3],slow:1,msg:'⚪ 白が毒の駒をひっくり返した！ → ☠ 毒で1回休み！'},{skip:1,slow:1,msg:'😵 白は1回休みです！'},{u:'move',ts:[[4,2]],q:'⑤ 2回続けて打てる！　1回目（光るマス）',ok:'白は休みなので、もう一度あなたの番！'},{u:'move',ts:[[1,3]],q:'⑤ 2回目！（光るマス）',ok:''}],ok:'白が休んでいる間に、2回続けて打てました！'},
 {t:'🌀 ワープ',h:'<p>自分の駒と、<b>2マス以内にいる白の駒</b>の場所を入れ替えます。入れ替えたあと、はさめる白は自動でひっくり返ります。</p><p class="tt-note">※ 盤面のいちばん外側の駒・四すみ・シールド駒は入れ替えできません。</p><p><b>使いどころ：</b>相手の並びをくずしたいとき。うまく使うと一手で大逆転！</p><p class="tt-note">⏳ もらってから<b>自分の5手番</b>で、獲得した分から順に失効します。消える直前は、ワープのカードが<b>赤く点滅</b>します。</p>',b:['........','........','........','.BBWW...','.....W..','......B.','........','........'],p:[{u:'warp',ts:[[3,2]],ts2:[[3,4]],q:'① 入れ替える黒駒（光っている駒）をタップ → ② 入れ替える白駒をタップ',ok:''}],ok:'場所を入れ替えただけで、白が全部黒になりました！'},
-{t:'🔄 強奪変換',h:'<p>相手の駒を<b>1つ直接うばって</b>自分の色にします。うばった駒をきっかけに、まわりの白もはさんでひっくり返ります。</p><p class="tt-note">※ 四すみ・シールド駒はうばえません。</p><p><b>使いどころ：</b>相手の列のかなめになっている駒をくずしたいとき。</p><p class="tt-note">⏳ もらってから<b>自分の5手番</b>で、獲得した分から順に失効します。消える直前は、強奪変換のカードが<b>赤く点滅</b>します。</p>',b:['........','........','........','.BWWWB..','........','........','........','........'],p:[{u:'steal',q:'うばいたい白をタップ（まん中がおすすめ）',ok:''}],ok:'うばった駒をきっかけに、まわりの白もひっくり返りました。'},
+{t:'🔄 強奪変換',h:'<p>相手の駒を<b>1つ直接うばって</b>自分の色にします。反転するのは選んだ1枚だけで、まわりの駒はひっくり返りません。</p><p class="tt-note">※ 四すみ・シールド駒はうばえません。</p><p><b>使いどころ：</b>相手の列のかなめになっている駒をくずしたいとき。</p><p class="tt-note">⏳ もらってから<b>自分の5手番</b>で、獲得した分から順に失効します。消える直前は、強奪変換のカードが<b>赤く点滅</b>します。</p>',b:['........','........','........','.BWWWB..','........','........','........','........'],p:[{u:'steal',q:'うばいたい白をタップ（まん中がおすすめ）',ok:''}],ok:'選んだ白1枚だけをうばいました。まわりの駒への連鎖はありません。'},
 {t:'👻 消滅',h:'<p>自分の駒を1つ消して、空きマスに戻します。消したあとは、そのまま<b>1手打てます</b>。</p><p><b>使いどころ：</b>角（⭐）を取られそうなときに、原因の駒を消して守る。</p><p>下の盤面では、白が⭐の角に置くと、左上の黒駒がはさまれてしまいます。</p>',b:['........','.B......','..W.....','........','..BW....','........','........','........'],mk:{'0,0':'⭐'},p:[{u:'vanish',ts:[[1,1]],q:'① 角をねらわれている黒駒（光っている駒）をタップして消す',ok:'駒が消えて、白は角を取れなくなりました！'},{u:'move',ts:[[4,4]],q:'② 続けて1手打てます（光るマス）',ok:''}],ok:'角の危険を消してから、そのまま1手打てました！'},
 {t:'👹 INMUPOWER',h:'<p>野獣帝ステージ限定のスキル（？マスで入手）。<b>次の白の番を自分で操作</b>して、白に置かせる場所を選べます。</p><div class="tt-flow"><span>① 自分が1手打つ</span><i>→</i><span>② 白の駒を自分で置く</span><i>→</i><span>③ もう一度自分が打つ</span></div><p><b>使いどころ：</b>白にあえて「角のとなり」を打たせて、自分が角（⭐）を取るとき。</p>',b:['........','........','..B.....','...W....','....B...','.....W..','........','........'],mk:{'0,0':'⭐'},p:[{u:'move',ts:[[6,6]],q:'① INMUPOWERを使って、1手打つ（光るマス）',ok:'発動！次は白の番を自分で操作できます'},{u:'inmuW',ts:[[1,1]],q:'② 白の駒を置く番！左上の光るマス（角のとなり）に置かせよう',ok:'白にまずい手を打たせました！'},{u:'move',ts:[[0,0]],q:'③ 自分の番！⭐の角を取ろう（光るマス）',ok:''}],ok:'白にまずい手を打たせて、角を取って一気に黒に染まりました！'},
-{t:'ステージと？マス',h:'<p>・<b>ブラックホール</b>：置けないマスがあるステージ。</p><p>・<b>十字型</b>：四すみが欠けたステージ。</p><p>・<b>チャージゾーン</b>：⚡のチャージマスがランダムに置かれ、時々復活するステージ。</p><p>・<b>野獣帝</b>：「？」マス（はてなボックス）をふむと、スキルがもらえるなどの効果が起きる。</p><p class="pt-2 text-cyan-300">準備完了です！左下の「？」ボタンで、いつでもここに戻れます。</p>'}
+{t:'ステージと？マス',h:'<p>・<b>ブラックホール</b>：置けないマスがあるステージ。</p><p>・<b>十字型</b>：四すみが欠けたステージ。</p><p>・<b>チャージゾーン</b>：⚡のチャージマスがランダムに置かれ、時々復活するステージ。</p><p>・<b>野獣帝</b>：「？」マス（はてなボックス）をふむと、スキル獲得や全スキル没収など、6種類の効果のどれかが起きる。</p><p class="pt-2 text-cyan-300">準備完了です！左下の「？」ボタンで、いつでもここに戻れます。</p>'}
 ];
 
 let tmI=null,waitSkip=null;
@@ -4070,7 +4077,7 @@ if(m==='bomb')for(let a=r-1;a<=r+1;a++)for(let b=c-1;b<=c+1;b++)if(a>=0&&a<8&&b>
 if(m==='shield')S.sh[r][c]=true}
 else if(m==='poison')S.po[r][c]=true;
 else if(m==='vanish')S.g[r][c]=0;
-else if(m==='steal'){setc(r,c,1);fl(r,c,1)}
+else if(m==='steal'){setc(r,c,1)}
 else if(m==='warp'){if(!S.src){S.src=[r,c];draw();return}const[a,b]=S.src;S.src=null;setc(a,b,2);setc(r,c,1);fl(r,c,1)}
 adv(ph.ok||'')}
 const fbAsk=(note,q)=>'<div class="tt-fbw">'+(note?'<div class="tt-notes">'+note+'</div>':'')+'<div class="tt-ask">👉 '+q+'</div></div>';
@@ -4571,10 +4578,8 @@ function cpuPickSteal(level, moves) {
         if (state.board[r][c] !== BLACK || state.shields[r][c] || isCorner(r, c)) continue;
         const nb = aiCopy(state.board);
         nb[r][c] = WHITE;
-        const chain = aiFlips(nb, state.shields, r, c, WHITE);
-        chain.forEach(([a,b])=>nb[a][b]=WHITE);
         let v = aiEval(nb, state.shields, WHITE);
-        if (state.poisonTrap[r][c] || chain.some(([a,b])=>state.poisonTrap[a][b])) v -= 60;
+        if (state.poisonTrap[r][c]) v -= 60;
         if (v > bv) { bv = v; best = { r, c }; }
     }
     const margin = moves.length === 0 ? 5 : (hard ? 32 : 52);
@@ -4968,7 +4973,7 @@ function cpuVanishTarget(list) {
                 for (const i of skillAiFlips(n, a.target, p)) flip(i);
             } else if (a.skill === 'steal') {
                 flip(a.target);
-                for (const i of skillAiFlips(n, a.target, p)) flip(i); // 強奪したマスを起点に8方向で挟む
+                // 指定した1枚だけ。強奪からの連鎖は行わない。
             } else if (a.move !== undefined) {
                 const flips = skillAiFlips(n, a.move, p);
                 n.b[a.move] = p;
@@ -6757,7 +6762,7 @@ async function maybeSpinThrow(r, c) {
 // 対象: 1P vs CPU（テストモード・オンライン・2P対戦は対象外）。進捗はこの端末のlocalStorageに保存。
 const ACH_BOMB_MIN = 7;   // 「爆破の芸術」: 爆発配置で一度に変換する相手駒の数
 const ACH_WARP_MIN = 6;
-const ACH_STEAL_MIN = 4;  // 「怪盗」: 強奪変換で一度に反転させる駒の数
+const ACH_STEAL_MIN = 1;  // 「怪盗」: 強奪変換で一度に反転させる駒の数
 const ACH_POISON_MAX = 30; // 「猛毒の罠」: 毒盤の通算数
 const ACH_VANISH_MIN = 3;  // 「自己犠牲の戦術」: 1局で使う消滅の回数   // 「空間の支配者」: ワープ後の連鎖反転で裏返す駒の数
 const ACH_DEFS = [
@@ -6776,7 +6781,7 @@ const ACH_DEFS = [
     { id: 'shield_corner', cat: 'スキル活用', icon: '🛡️', name: '絶対防壁', desc: '「シールド」を盤面の4つの角すべてに配置する（通算・角ごとに1回）', max: 4, stat: 'shieldCorners' },
     { id: 'poison_10', cat: 'スキル活用', icon: '🧪', name: '猛毒の罠', desc: `「毒盤」を仕掛けた駒の数が、通算${ACH_POISON_MAX}駒に達する`, max: ACH_POISON_MAX, stat: 'poison' },
     { id: 'warp_master', cat: 'スキル活用', icon: '🌀', name: '空間の支配者', desc: `「ワープ」で相手と位置を交換し、そこから連鎖反転で${ACH_WARP_MIN}枚以上裏返す` },
-    { id: 'thief', cat: 'スキル活用', icon: '🦹', name: '怪盗', desc: `「強奪変換」で、相手の壁際（角以外）の駒を奪い、奪った駒を含めて一度に${ACH_STEAL_MIN}枚以上自色にする` },
+    { id: 'thief', cat: 'スキル活用', icon: '🦹', name: '怪盗', desc: `「強奪変換」で、相手の壁際（角以外）の駒を奪い、その1枚を自色にする` },
     { id: 'sacrifice', cat: 'スキル活用', icon: '🕯️', name: '自己犠牲の戦術', desc: `1局の中で「消滅」を${ACH_VANISH_MIN}回以上使い、その対局に勝利する` },
     { id: 'ikisugi', cat: 'スキル活用', icon: '👹', name: 'イキスギィ！', desc: '野獣帝ステージ限定の「INMUPOWER」を使って相手の手番を支配し、その対局に勝利する' },
     { id: 'stage_blackhole', cat: 'ステージ・環境', icon: '🌌', name: '事象の地平線', desc: 'ステージ「ブラックホール」でCPUに勝利する' },
