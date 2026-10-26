@@ -1347,6 +1347,8 @@ body.theme-custom { background-color: var(--cs-bg1, #312e81); color: #f5f3ff; }
 .pf-av .pf-orbit { --r: 44px; --fs: 15px; --dur: 10s; }
 @media (prefers-reduced-motion: reduce) { .pf-oi { animation: none; } .pf-os { animation: none; transform: rotate(calc(360deg * var(--i) / var(--n))) translateY(calc(var(--r) * -1)) rotate(calc(-360deg * var(--i) / var(--n))); } }
 @media (max-width: 639px) { #gameHeader { flex-wrap: wrap; } #gameHeader > div:last-child { margin-left: auto; } }
+#netBanner { top: 58px; max-width: calc(100vw - 16px); text-align: center; pointer-events: none; }
+@media (max-width: 639px) { #netBanner { top: 90px; } }
 /* CPU撃破称号：色を保ったネオン発光と流れるハイライト */
 .pf-title-glow {
   color: var(--pf-glow) !important;
@@ -3658,83 +3660,96 @@ function endItemTurn(p) {
 (() => {
   const $ = id => document.getElementById(id);
   const SK = ['bomb','shield','poison','warp','steal','vanish','inmu'];
-  const CH = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789', PFX = 'neo-reversi-';
+  const CH = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789', PFX = 'neo-reversi-', VERSION = 2, MAX_VIEWERS = 4;
   const rnd = n => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => CH[b % CH.length]).join('');
-  let netRole = null, want = null, peer = null, conn = null, timer = null, lastMsg = '';
+  let netRole = null, peer = null, conn = null, timer = null, lastMsg = '', roomCode = '', hostMode = 'online';
+  let generation = 0, sequence = 0, receivedSequence = -1, result = null, remoteViews = null, lastSeen = 0, retry = null;
+  const viewers = new Set(), pending = new Set();
+  const isHost = () => netRole === 'host' || netRole === 'cpu-host';
+  const isRemote = () => netRole === 'guest' || netRole === 'spectator';
+  const actor = () => state.inmuControl !== null ? state.inmuControl : state.turn;
   const mine = () => netRole === 'host' ? BLACK : WHITE;
-  const actor = () => state.inmuControl !== null ? state.inmuControl : state.turn;   // 今操作する人
-
-  // 元の関数を退避
   const O = { render: renderBoard, skillUI: updateSkillUI, setMsg: setMessage, click: handleCellClick,
     select: selectSkill, init: initGame, reset: resetGame, over: checkGameOver, sound: playSound,
-    cutin: triggerSkillCutin, scores: updateScores, badge: updateTurnBadge,
-    testT: toggleTestMode, testO: openTestModeModal };
-
-  const send = m => { try { if (conn && conn.open) conn.send(m); } catch (e) { __swallow(e); } };
-  const sendState = () => {
-    clearTimeout(timer);
-    timer = setTimeout(() => send({ t: 's', s: { board: state.board, shields: state.shields, poisonTrap: state.poisonTrap, mysteryBox: state.mysteryBox, inmuControl: state.inmuControl, turn: state.turn, isProcessing: state.isProcessing, activeSkill: state.activeSkill,
-      warpSourceCell: state.warpSourceCell, p1Paralyzed: state.p1Paralyzed, p2Paralyzed: state.p2Paralyzed, playerFlipCount: state.playerFlipCount, cpuFlipCount: state.cpuFlipCount, playerSkills: state.playerSkills, cpuSkills: state.cpuSkills, skillAge: state.skillAge, itemTurns: state.itemTurns, itemExpiry: state.itemExpiry,
-      currentStage: state.currentStage, msg: lastMsg } }), 30);
-  };
-  const isHost = () => netRole === 'host';
+    cutin: triggerSkillCutin, scores: updateScores, badge: updateTurnBadge };
+  const safeSend = (c,m) => { try { if (c && c.open) c.send(m); } catch(e) { __swallow(e); } };
+  function send(m) { if (isHost()) { safeSend(conn,m); viewers.forEach(c=>safeSend(c,m)); } else safeSend(conn,m); }
   window.getNetRole = () => netRole;
-  window.profOnlineSync = () => { if (netRole && window.profNetData) send({ t: 'p', p: window.profNetData() }); };
-  const STAGES = { standard: '🏟️ スタンダード', blackhole: '🌌 ブラックホール', cross: '✝️ 十字型 (クロス)', charge: '⚡ チャージゾーン', yajuu: '👹 野獣帝' };
-  // 対戦中・部屋の待機中は、ステージ/スキン/対戦モード/難易度/テストモード/リセットを使えなくする
+  window.getSpectatorViews = () => netRole === 'spectator' ? remoteViews : null;
+  window.profOnlineSync = () => {
+    if (!netRole || netRole === 'spectator') return;
+    if (isHost()) { safeSend(conn,{t:'p',p:window.profNetData?.()}); sendState(); }
+    else safeSend(conn,{t:'p',p:window.profNetData?.()});
+  };
+  const STAGES = { standard:'🏟️ スタンダード', blackhole:'🌌 ブラックホール', cross:'✝️ 十字型 (クロス)', charge:'⚡ チャージゾーン', yajuu:'👹 野獣帝' };
+  function snapshot() {
+    return {t:'s',seq:++sequence,s:{
+      board:state.board,shields:state.shields,poisonTrap:state.poisonTrap,mysteryBox:state.mysteryBox,
+      spinCell:state.spinCell,mysteryCool:state.mysteryCool,inmuQueued:state.inmuQueued,
+      inmuControl:state.inmuControl,turn:state.turn,isProcessing:state.isProcessing,activeSkill:state.activeSkill,
+      warpSourceCell:state.warpSourceCell,p1Paralyzed:state.p1Paralyzed,p2Paralyzed:state.p2Paralyzed,
+      playerFlipCount:state.playerFlipCount,cpuFlipCount:state.cpuFlipCount,playerSkills:state.playerSkills,cpuSkills:state.cpuSkills,
+      skillAge:state.skillAge,itemTurns:state.itemTurns,itemExpiry:state.itemExpiry,currentStage:state.currentStage,
+      msg:lastMsg, mode:hostMode,result,viewers:viewers.size,views:window.profBroadcastViews?.()
+    }};
+  }
+  function sendState() { clearTimeout(timer); if (isHost()) timer=setTimeout(()=>{if(isHost())send(snapshot());},30); }
   function lockHeader(on) {
-    ['gameModeSelect', 'aiLevelSelect', 'stageSelect', 'themeSelect'].forEach(i => { const e = $(i); if (e) e.disabled = on; });
-    document.querySelectorAll('#testModeBtn, #ttTitleBtn, header button[onclick="resetGame()"]').forEach(b => {
-      b.disabled = on; b.classList.toggle('opacity-40', on); b.classList.toggle('pointer-events-none', on);
+    ['gameModeSelect','aiLevelSelect','stageSelect','themeSelect'].forEach(id=>{if($(id))$(id).disabled=on;});
+    document.querySelectorAll('#testModeBtn,#ttTitleBtn,header [data-w="w1"]').forEach(b=>{
+      const disabled=on && !(netRole==='cpu-host' && b.matches('[data-w="w1"]'));
+      b.disabled=disabled;b.classList.toggle('opacity-40',disabled);b.classList.toggle('pointer-events-none',disabled);
     });
   }
-
-  // 自分の番でないときは操作できないようにする
   function lockUI() {
-    if (!netRole) return;
-    // スキルボタン: 自分が操作する人でなければ無効化（処理中フラグでは無効化しない。
-    // ターン切替時のUI更新は処理中に走るため、ここで無効化するとホスト側のボタンが戻らなくなる）
-    if (actor() !== mine()) {
-      ['Bomb','Shield','Poison','Warp','Steal','Vanish','Inmu'].forEach(s => { const b = $('btn' + s); if (b) b.disabled = true; });
-    }
-    // 盤面: 自分の番でない／処理中はクリック不可
-    if (actor() === mine() && !state.isProcessing) return;
-    $('board').querySelectorAll('div').forEach(el => {
-      el.onclick = null;
-      el.classList.remove('cell-highlight','cell-poison-target','cell-warp-source','cell-warp-target','cell-skill-target','cell-vanish-target');
+    if(!netRole || netRole==='cpu-host')return;
+    const blocked=netRole==='spectator'||actor()!==mine()||!conn?.open;
+    if(blocked) ['Bomb','Shield','Poison','Warp','Steal','Vanish','Inmu'].forEach(k=>{if($('btn'+k))$('btn'+k).disabled=true;});
+    if(!blocked&&!state.isProcessing)return;
+    $('board').querySelectorAll('div').forEach(el=>{
+      el.onclick=null;el.classList.remove('cell-highlight','cell-poison-target','cell-warp-source','cell-warp-target','cell-skill-target','cell-vanish-target');
     });
   }
-
-  // ---- 関数の差し替え(hooks.around。後から登録したものが外側) ----
-  hooks.around('setMessage', (next, m) => { lastMsg = m; next(m); if (isHost()) sendState(); });
-  hooks.around('renderBoard', next => { next(); lockUI(); if (isHost()) sendState(); });
-  hooks.around('updateSkillUI', next => { next(); lockUI(); if (isHost()) sendState(); });
-  hooks.around('playSound', (next, t) => { next(t); if (isHost()) send({ t: 'fx', k: 'snd', v: t }); });
-  hooks.around('triggerSkillCutin', (next, k, p) => { if (isHost()) send({ t: 'fx', k: 'cut', v: k, p }); return next(k, p); });
-  hooks.around('handleCellClick', (next, r, c, e) => {
-    if (netRole === 'guest') { if (actor() === WHITE && !state.isProcessing) send({ t: 'c', r, c }); return; }
-    if (isHost() && actor() !== BLACK) return;
-    return next(r, c, e);
+  hooks.around('setMessage',(next,m)=>{lastMsg=m;next(m);if(isHost())sendState();});
+  hooks.around('renderBoard',next=>{next();lockUI();if(isHost())sendState();});
+  hooks.around('updateSkillUI',next=>{next();lockUI();if(isHost())sendState();});
+  hooks.around('playSound',(next,t)=>{next(t);if(isHost())send({t:'fx',k:'snd',v:t});});
+  hooks.around('triggerSkillCutin',(next,k,p)=>{if(isHost())send({t:'fx',k:'cut',v:k,p});return next(k,p);});
+  hooks.around('handleCellClick',(next,r,c,e)=>{
+    if(netRole==='spectator')return;
+    if(netRole==='guest'){if(actor()===WHITE&&!state.isProcessing)safeSend(conn,{t:'c',r,c});return;}
+    if(netRole==='host'&&(actor()!==BLACK||!conn?.open))return;
+    return next(r,c,e);
   });
-  hooks.around('selectSkill', (next, s) => {
-    if (netRole === 'guest') { if (actor() === WHITE && !state.isProcessing) send({ t: 'k', s }); return; }
-    if (isHost() && actor() !== BLACK) return;
+  hooks.around('selectSkill',(next,s)=>{
+    if(netRole==='spectator')return;
+    if(netRole==='guest'){if(actor()===WHITE&&!state.isProcessing)safeSend(conn,{t:'k',s});return;}
+    if(netRole==='host'&&(actor()!==BLACK||!conn?.open))return;
     return next(s);
   });
-  hooks.around('initGame', next => { next(); if (isHost()) { send({ t: 'n' }); sendState(); } });
-  hooks.around('resetGame', next => netRole === 'guest' ? send({ t: 'r' }) : next());
-  hooks.around('checkGameOver', (next, f) => {
-    const r = next(f);
-    if (r && isHost()) send({ t: 'o', title: $('modalTitle').innerText, reason: $('modalReason').innerText,
-      body: $('modalBody').innerHTML, icon: $('modalIcon').innerHTML,
-      cls: $('gameModal').querySelector('.glass-panel').className });
-    return r;
+  hooks.around('initGame',next=>{
+    if(isRemote())return;
+    result=null;if(isHost())closeModal();next();if(isHost()){send({t:'n'});sendState();}
   });
-  hooks.around('toggleTestMode', next => netRole ? O.setMsg('オンライン対戦中はテストモードを使えません') : next());
-  hooks.around('openTestModeModal', next => netRole ? O.setMsg('オンライン対戦中はテストモードを使えません') : next());
+  hooks.around('runCpuTurn',next=>isRemote()||netRole==='host'?undefined:next());
+  hooks.around('resetGame',next=>{
+    if(netRole==='spectator')return;
+    if(netRole==='guest'){safeSend(conn,{t:'r'});return;}
+    if(netRole==='host'&&!conn?.open)return;
+    return next();
+  });
+  hooks.around('checkGameOver',(next,f)=>{
+    if(isRemote())return false;
+    const ended=next(f);
+    if(ended&&isHost()){
+      result={t:'o',title:$('modalTitle').innerText,reason:$('modalReason').innerText,
+        body:$('modalBody').innerHTML,icon:$('modalIcon').innerHTML,cls:$('gameModal').querySelector('.glass-panel').className};
+      send(result);sendState();
+    }return ended;
+  });
+  hooks.around('toggleTestMode',next=>netRole?O.setMsg('接続中はテストモードを使えません'):next());
+  hooks.around('openTestModeModal',next=>netRole?O.setMsg('接続中はテストモードを使えません'):next());
 
-  // ---- スキル演出の同期：ホスト側で再生された演出をゲストにも送って再生する ----
-  // （演出関数は後ろのスクリプトで定義されるので、全スクリプト読み込み後に差し替える）
   const FXO = {};
   function hookFx() {
     ['fxBomb', 'fxShield', 'fxPoison', 'fxWarpIn', 'fxWarpOut', 'fxSteal', 'fxVanish'].forEach(n => {
@@ -3758,116 +3773,199 @@ function endItemTurn(p) {
   function apply(s) {
     ({ board: state.board, shields: state.shields, poisonTrap: state.poisonTrap, mysteryBox: state.mysteryBox, inmuControl: state.inmuControl, turn: state.turn, isProcessing: state.isProcessing, activeSkill: state.activeSkill, warpSourceCell: state.warpSourceCell, p1Paralyzed: state.p1Paralyzed, p2Paralyzed: state.p2Paralyzed,
        playerFlipCount: state.playerFlipCount, cpuFlipCount: state.cpuFlipCount, playerSkills: state.playerSkills, cpuSkills: state.cpuSkills, currentStage: state.currentStage, skillAge: state.skillAge, itemTurns: state.itemTurns, itemExpiry: state.itemExpiry } = s);
+    state.spinCell=s.spinCell; state.mysteryCool=s.mysteryCool; state.inmuQueued=s.inmuQueued;
     if (!state.skillAge) state.skillAge = newSkillAge();
     if (!state.itemTurns) state.itemTurns={ [BLACK]:0,[WHITE]:0 };
     if (!state.itemExpiry) state.itemExpiry={ [BLACK]:{steal:[],warp:[]},[WHITE]:{steal:[],warp:[]} };
-    lastMsg = s.msg; state.gameMode = 'vs2p';
+    lastMsg = s.msg; state.gameMode = 'vs2p'; remoteViews=s.views||null;
+    $('netViewerCount').textContent=String(s.viewers||0);
+    if(window.pfRenderCards)window.pfRenderCards();
     $('stageSelect').value = state.currentStage;
     O.setMsg(s.msg); O.render(); O.scores(); O.badge(); O.skillUI(); lockUI();
   }
   function showOver(m) {
     $('modalTitle').innerText = m.title; $('modalReason').innerText = m.reason;
     $('modalBody').innerHTML = m.body; $('modalIcon').innerHTML = m.icon;
+    $('modalOkBtn').textContent=netRole==='spectator'?'閉じて観戦を続ける':'もう一度遊ぶ';
     const g = $('gameModal'); g.classList.remove('hidden');
     g.querySelector('.glass-panel').className = m.cls;
     if (/WIN/.test(m.title)) createConfetti();
   }
 
-  function onData(m) {
-    if (!m || typeof m !== 'object') return;
-    if (m.t === 'p') { if (window.profSetOpp) window.profSetOpp(m.p); return; }
-    if (isHost()) {
-      if (m.t === 'c' && actor() === WHITE && Number.isInteger(m.r) && Number.isInteger(m.c)) {
-        // 2Pの操作でも演出（爆発など）が押したマスの位置に出るよう、マス要素を渡す
-        const bd = $('board'), el = bd && bd.children.length === 64 ? bd.children[m.r * 8 + m.c] : null;
-        O.click(m.r, m.c, el ? { currentTarget: el, target: el } : null);
-      }
-      else if (m.t === 'k' && actor() === WHITE && SK.includes(m.s)) O.select(m.s);
-      else if (m.t === 'r') O.reset();
-    } else if (netRole === 'guest') {
-      if (m.t === 's') apply(m.s);
-      else if (m.t === 'fx') {
-        if (m.k === 'snd') { if (m.v !== 'inmu') O.sound(m.v); }
-        else if (m.k === 'cut') O.cutin(m.v, m.p);
-        else if (m.k === 'fx') {   // 盤面のスキル演出（爆発・シールド・毒・ワープ・強奪・消滅）
-          const f = FXO[m.n];
-          try { if (f) { if (m.n === 'fxWarpOut') setTimeout(() => { try { f(); } catch (e) { __swallow(e); } }, 150); else f.apply(null, m.a || []); } } catch (e) { __swallow(e); }
-        } else if (m.k === 'boom') {   // 爆発パーティクル（盤面基準の相対位置）
-          const f = FXO.createExplosion, b = $('board').getBoundingClientRect();
-          try { if (f) f(b.left + m.x * b.width, b.top + m.y * b.height, m.c, m.n); } catch (e) { __swallow(e); }
-        }
-      }
-      else if (m.t === 'n') closeModal();
-      else if (m.t === 'o') showOver(m);
+  function receive(m) {
+    if(!m||typeof m!=='object')return;
+    lastSeen=Date.now();
+    if(m.t==='reject'){disconnectRemote(m.reason);return;}
+    if(m.t==='welcome'){
+      if(m.version!==VERSION)return;
+      netRole=m.role;receivedSequence=-1;lockHeader(true);banner();
+      $('ttTitle').classList.add('hidden');$('ttAsk').classList.add('hidden');
+      $('netPanel').classList.add('hidden');
+      if(netRole==='guest')setTimeout(()=>{if(netRole==='guest')window.profOnlineSync();},30);
+      O.render();O.skillUI();lockUI();return;
     }
+    if(!isRemote())return;
+    if(m.t==='p'){if(netRole==='guest'&&window.profSetOpp)window.profSetOpp(m.p);return;}
+    if(m.t==='s'){
+      if(!Number.isInteger(m.seq)||m.seq<=receivedSequence)return;
+      receivedSequence=m.seq;apply(m.s);banner();safeSend(conn,{t:'ack'});
+      if(m.s.result&&!result){result=m.s.result;showOver(result);}
+      else if(!m.s.result){result=null;closeModal();}
+    } else if(m.t==='fx'){
+      if(m.k==='snd'){if(m.v!=='inmu')O.sound(m.v);}
+      else if(m.k==='cut')O.cutin(m.v,m.p);
+      else if(m.k==='fx'){
+        const f=FXO[m.n];try{if(f)f.apply(null,m.a||[]);}catch(e){__swallow(e);}
+      }else if(m.k==='boom'){
+        const f=FXO.createExplosion,b=$('board').getBoundingClientRect();
+        try{if(f)f(b.left+m.x*b.width,b.top+m.y*b.height,m.c,m.n);}catch(e){__swallow(e);}
+      }
+    }else if(m.t==='n'){result=null;closeModal();}
+    else if(m.t==='o'){if(!result){result=m;showOver(m);}}
+    else if(m.t==='ended'){disconnectRemote(m.reason||'配信が終了しました');}
   }
-
-  // ---- 接続まわり ----
-  const status = t => { $('netStatus').textContent = t; };
-  function banner() {
-    const b = $('netBanner');
-    if (!netRole) { b.classList.add('hidden'); return; }
-    b.classList.remove('hidden');
-    b.textContent = '🌐 オンライン対戦中：あなたは ' + (isHost() ? 'P1 (黒)' : 'P2 (白)');
+  const status=t=>{$('netStatus').textContent=t;};
+  function banner(){
+    const b=$('netBanner');
+    b.classList.toggle('hidden',!netRole);
+    if(!netRole)return;
+    const count=isHost()?viewers.size:Number($('netViewerCount').textContent)||0;
+    b.textContent=netRole==='spectator'?'👁 観戦中（操作できません）':netRole==='cpu-host'?'📡 CPU戦を配信中':netRole==='host'?'🌐 あなたはP1（黒）':'🌐 あなたはP2（白）';
+    b.textContent+=' · 観戦 '+count+'/'+MAX_VIEWERS+'人';
+    if(roomCode&&isHost())b.textContent+=' · '+roomCode;
+    $('netViewerCount').textContent=String(count);
   }
-  function leave() {
-    netRole = null; want = null; conn = null;
-    if (window.profSetOpp) window.profSetOpp(null);
-    if (peer) { try { peer.destroy(); } catch (e) { __swallow(e); } peer = null; }
-    lockHeader(false);
-    $('netStage').classList.add('hidden');
-    $('netRoom').classList.add('hidden');
-    banner();
+  function disconnectRemote(reason){
+    if(!isRemote())return;
+    const c=conn;conn=null;
+    if(c)try{c.close();}catch(e){__swallow(e);}
+    lockUI();status(reason);$('netBanner').textContent=reason;
+    $('netPanel').classList.remove('hidden');$('netReconnect').classList.remove('hidden');
   }
-  function wire(c) {
-    c.on('open', () => {
-      netRole = want; state.gameMode = 'vs2p'; $('gameModeSelect').value = 'vs2p';
-      if (state.isTestMode) exitTestMode();
-      lockHeader(true);
-      if (window.profOnlineSync) window.profOnlineSync();
-      banner(); $('netPanel').classList.add('hidden');
-      if (isHost()) window.initGame();
+  function leave(){
+    generation++;clearTimeout(timer);timer=null;
+    const wasRemote=isRemote(),oldPeer=peer;
+    if(isHost())send({t:'ended',reason:'配信が終了しました（部屋主が退出しました）'});
+    netRole=null;peer=null;conn=null;roomCode='';result=null;remoteViews=null;receivedSequence=-1;
+    $('modalOkBtn').textContent='もう一度遊ぶ';
+    for(const c of [...viewers,...pending]){try{c.close();}catch(e){__swallow(e);}}
+    viewers.clear();pending.clear();
+    if(oldPeer)try{oldPeer.destroy();}catch(e){__swallow(e);}
+    if(window.profSetOpp)window.profSetOpp(null);
+    lockHeader(false);$('netRoom').classList.add('hidden');$('netStage').classList.add('hidden');$('netReconnect').classList.add('hidden');banner();
+    if(wasRemote){state.gameMode=$('gameModeSelect').value='vsCpu';O.init();}
+    else{O.render();O.skillUI();}
+  }
+  function reject(c,reason){safeSend(c,{t:'reject',reason});setTimeout(()=>{try{c.close();}catch(e){__swallow(e);}},250);}
+  function accept(c,epoch){
+    // Metadata determines the role once. Spectator packets never enter the player action handler.
+    const role=c.metadata?.role;
+    const valid=c.metadata?.version===VERSION&&(role==='guest'||role==='spectator');
+    let reason='';
+    if(!valid)reason='同じ最新版のアプリから接続してください';
+    else if(role==='guest'&&(hostMode==='cpu'||conn))reason=hostMode==='cpu'?'この部屋はCPU戦の観戦専用です':'対戦枠は満員です。観戦で参加できます';
+    else if(role==='spectator'&&viewers.size>=MAX_VIEWERS)reason='観戦枠は満員です（最大4人）';
+    if(!reason){if(role==='guest')conn=c;else viewers.add(c);}
+    pending.add(c);
+    const timeout=setTimeout(()=>{if(pending.has(c))c.close();},12000);
+    c.on('open',()=>{
+      pending.delete(c);clearTimeout(timeout);
+      if(epoch!==generation||!isHost()){c.close();return;}
+      if(reason){reject(c,reason);return;}
+      c.neoLastSeen=Date.now();
+      safeSend(c,{t:'welcome',version:VERSION,role,mode:hostMode});
+      if(role==='guest'){
+        $('netPanel').classList.add('hidden');
+        state.gameMode=$('gameModeSelect').value='vs2p';window.initGame();
+        safeSend(c,{t:'p',p:window.profNetData?.()});
+      }
+      safeSend(c,snapshot());banner();sendState();status(role==='spectator'?'観戦者が参加しました':'対戦相手が参加しました');
     });
-    c.on('data', onData);
-    c.on('close', () => { leave(); status('接続が切れました。もう一度「部屋を作る」から始めてください。'); $('netPanel').classList.remove('hidden'); });
-  }
-  function hostRoom(stage) {
-    if (typeof Peer === 'undefined') return status('通信ライブラリを読み込めませんでした');
-    stage = STAGES[stage] ? stage : 'standard';
-    initAudio(); leave(); want = 'host';
-    $('stageSelect').value = stage;
-    const code = rnd(8);
-    peer = new Peer(PFX + code);
-    peer.on('open', () => { $('netRoom').classList.remove('hidden'); $('netRoomCode').textContent = code; $('netRoomStage').textContent = 'ステージ: ' + STAGES[stage]; lockHeader(true); status('相手の参加を待っています…'); });
-    peer.on('connection', c => { if (conn && conn.open) { c.close(); return; } conn = c; wire(c); });
-    peer.on('error', e => e.type === 'unavailable-id' ? hostRoom(stage) : status('エラー: ' + e.type));
-  }
-  function joinRoom() {
-    if (typeof Peer === 'undefined') return status('通信ライブラリを読み込めませんでした');
-    const code = $('netCode').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (code.length !== 8) return status('ルームコードは8文字です');
-    initAudio(); leave(); want = 'guest';
-    peer = new Peer();
-    peer.on('open', () => {
-      status('接続中…');
-      conn = peer.connect(PFX + code, { serialization: 'json' }); wire(conn);
-      setTimeout(() => { if (!netRole && conn && !conn.open) status('つながりませんでした。コードと相手の部屋を確認してください。'); }, 12000);
+    c.on('data',m=>{
+      if(epoch!==generation||!isHost()||!c.open||reason||!m||typeof m!=='object')return;
+      if(m.t==='ack'){c.neoLastSeen=Date.now();return;}
+      if(role==='spectator'){
+        // Read-only synchronization request is the only accepted spectator message.
+        if(m.t==='sync')safeSend(c,snapshot());
+        return;
+      }
+      if(c!==conn)return;
+      if(m.t==='p'){if(window.profSetOpp)window.profSetOpp(m.p);sendState();return;}
+      if(m.t==='c'&&actor()===WHITE&&!state.isProcessing&&Number.isInteger(m.r)&&Number.isInteger(m.c)&&m.r>=0&&m.r<8&&m.c>=0&&m.c<8){
+        const el=$('board').children[m.r*8+m.c];O.click(m.r,m.c,el?{currentTarget:el,target:el}:null);
+      }else if(m.t==='k'&&actor()===WHITE&&!state.isProcessing&&SK.includes(m.s))O.select(m.s);
+      else if(m.t==='r'&&(!state.isProcessing||result))O.reset();
     });
-    peer.on('error', e => status(e.type === 'peer-unavailable' ? 'そのルームコードの部屋は見つかりません' : 'エラー: ' + e.type));
+    const closed=()=>{
+      clearTimeout(timeout);pending.delete(c);
+      if(epoch!==generation)return;
+      viewers.delete(c);
+      if(conn===c){conn=null;if(window.profSetOpp)window.profSetOpp(null);O.setMsg('対戦相手が退出しました。次の参加で新しい対局を開始します。');}
+      banner();sendState();O.render();O.skillUI();lockUI();
+    };
+    c.on('close',closed);c.on('error',closed);
   }
-  async function copy(text) {
-    try { await navigator.clipboard.writeText(text); status('コピーしました'); } catch (e) { status('コピーできませんでした: ' + text); }
+  function hostRoom(stage,mode='online'){
+    if(typeof Peer==='undefined')return status('通信ライブラリを読み込めませんでした');
+    if(state.isTestMode)return status('テストモードを終了してから部屋を作ってください');
+    if(mode==='cpu'&&state.gameMode!=='vsCpu')return status('対戦モードを「1P vs CPU」にしてから配信してください');
+    if(mode==='online'&&state.isProcessing&&$('gameModal').classList.contains('hidden'))return status('現在の処理が終わってから部屋を作ってください');
+    stage=STAGES[stage]?stage:'standard';initAudio();leave();hostMode=mode;
+    const epoch=generation,code=rnd(8),p=new Peer(PFX+code);peer=p;
+    p.on('open',()=>{
+      if(epoch!==generation)return;
+      roomCode=code;netRole=mode==='cpu'?'cpu-host':'host';
+      if(mode==='online'){state.currentStage=$('stageSelect').value=stage;state.gameMode=$('gameModeSelect').value='vs2p';window.initGame();}
+      else if(!$('gameModal').classList.contains('hidden')){
+        result={t:'o',title:$('modalTitle').innerText,reason:$('modalReason').innerText,body:$('modalBody').innerHTML,icon:$('modalIcon').innerHTML,cls:$('gameModal').querySelector('.glass-panel').className};
+      }
+      $('netRoom').classList.remove('hidden');$('netRoomCode').textContent=code;
+      $('netCopy').classList.toggle('hidden',mode==='cpu');
+      $('netRoomStage').textContent=mode==='cpu'?'CPU戦の観戦専用（現在の対局を配信）':'ステージ: '+STAGES[stage];
+      lockHeader(true);banner();O.render();O.skillUI();status(mode==='cpu'?'CPU戦の配信を開始しました':'対戦相手・観戦者の参加を待っています');
+    });
+    p.on('connection',c=>{if(epoch===generation)accept(c,epoch);else c.close();});
+    p.on('error',e=>{if(epoch!==generation)return;if(e.type==='unavailable-id')hostRoom(stage,mode);else status('接続エラー: '+e.type);});
   }
-
+  function joinRoom(role='guest',specifiedCode){
+    if(typeof Peer==='undefined')return status('通信ライブラリを読み込めませんでした');
+    const code=(specifiedCode||$('netCode').value).toUpperCase().replace(/[^A-Z0-9]/g,'');
+    if(code.length!==8)return status('ルームコードは8文字です');
+    if(!isRemote()&&state.isProcessing&&$('gameModal').classList.contains('hidden'))return status('現在の処理が終わってから参加してください');
+    initAudio();if(state.isTestMode)exitTestMode();leave();retry={role,code};
+    netRole=role;lockHeader(true);lockUI();status('接続中…');
+    const epoch=generation,p=new Peer();peer=p;
+    p.on('open',()=>{
+      if(epoch!==generation)return;
+      const c=p.connect(PFX+code,{serialization:'json',metadata:{role,version:VERSION}});conn=c;lastSeen=Date.now();
+      c.on('data',m=>{if(epoch===generation&&conn===c)receive(m);});
+      c.on('close',()=>{if(epoch===generation&&conn===c)disconnectRemote('接続が切れました。再接続できます。部屋主の終了時は観戦を再開できません。');});
+      c.on('error',()=>{if(epoch===generation&&conn===c)disconnectRemote('通信エラーです。再接続してください。');});
+      setTimeout(()=>{if(epoch===generation&&conn&&receivedSequence<0)disconnectRemote('つながりませんでした。コード・参加枠・アプリの版を確認してください。');},12000);
+    });
+    p.on('error',e=>{if(epoch===generation)disconnectRemote(e.type==='peer-unavailable'?'そのルームコードの部屋は見つかりません':'接続エラー: '+e.type);});
+  }
+  // Periodic full snapshots repair missed visual updates and detect a silent connection loss.
+  setInterval(()=>{
+    if(isHost()){
+      for(const c of viewers)if(c.open&&c.neoLastSeen&&Date.now()-c.neoLastSeen>30000)c.close();
+      send(snapshot());
+    }
+    else if(isRemote()&&conn?.open&&Date.now()-lastSeen>15000)disconnectRemote('通信が途切れました。再接続してください。');
+  },2000);
+  window.addEventListener('pagehide',()=>{if(isHost())send({t:'ended',reason:'配信が終了しました'});});
+  async function copy(text){try{await navigator.clipboard.writeText(text);status('コピーしました');}catch(e){status('コピーできませんでした: '+text);}}
   // ---- UI ----
   const ui = document.createElement('div');
   ui.innerHTML = `
-  <button id="netOpen" type="button" class="bg-gradient-to-r from-emerald-500 to-cyan-600 text-white text-xs sm:text-sm font-bold py-1.5 px-3 rounded-lg shadow-lg active:scale-95">🌐 オンライン対戦</button>
+  <button id="netOpen" type="button" class="bg-gradient-to-r from-emerald-500 to-cyan-600 text-white text-xs sm:text-sm font-bold py-1.5 px-3 rounded-lg shadow-lg active:scale-95">🌐 対戦・観戦</button>
   <div id="netBanner" class="hidden fixed top-1 left-1/2 -translate-x-1/2 z-40 text-xs bg-black/70 text-emerald-300 px-3 py-1 rounded-full"></div>
-  <div id="netPanel" class="hidden fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4">
-    <div class="w-full max-w-sm rounded-2xl bg-gray-900 text-gray-100 border border-emerald-500/50 p-5 space-y-3">
-      <div class="text-lg font-bold">🌐 オンライン対戦</div>
+  <div id="netPanel" class="hidden fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4" style="overflow-y:auto">
+    <div class="w-full max-w-sm rounded-2xl bg-gray-900 text-gray-100 border border-emerald-500/50 p-5 space-y-3" style="max-height:90vh;overflow-y:auto">
+      <div class="text-lg font-bold">🌐 オンライン対戦・観戦</div>
+      <div class="text-xs text-gray-400">観戦者 <span id="netViewerCount">0</span> / 4人 · 観戦は操作できません</div>
       <button id="netHost" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold py-2 rounded-lg">部屋を作る（P1・黒）</button>
+      <button id="netCpuHost" class="w-full bg-gray-800 border border-cyan-500/50 text-cyan-200 py-2 rounded-lg text-sm">📡 現在のCPU戦を配信する</button>
       <div id="netStage" class="hidden space-y-2">
         <div class="text-xs text-gray-400">先にステージを選んでください。選ぶと部屋コードが表示されます。</div>
         <button data-stage="standard" class="netStageBtn w-full bg-gray-800 hover:bg-gray-700 border border-yellow-500/40 text-yellow-200 py-2 rounded-lg text-sm">🏟️ スタンダード</button>
@@ -3879,15 +3977,18 @@ function endItemTurn(p) {
       </div>
       <div id="netRoom" class="hidden text-center space-y-2">
         <div id="netRoomStage" class="text-xs text-emerald-300"></div>
-        <div class="text-xs text-gray-400">このコードを対戦相手に伝えてください</div>
+        <div class="text-xs text-gray-400">このコードを対戦相手・観戦者に伝えてください</div>
         <div id="netRoomCode" class="text-3xl font-black tracking-widest text-yellow-300 select-all"></div>
-        <button id="netCopy" class="text-xs underline text-cyan-300">招待リンクをコピー</button>
+        <button id="netCopy" class="text-xs underline text-cyan-300">対戦招待リンクをコピー</button>
+        <button id="netWatchCopy" class="text-xs underline text-cyan-300">観戦リンクをコピー</button>
       </div>
       <div class="border-t border-gray-700 pt-3 space-y-2">
-        <div class="text-xs text-gray-400">コードを持っている人はここから参加（P2・白）</div>
+        <div class="text-xs text-gray-400">コードを入力して「対戦参加」か「観戦」を選択</div>
         <input id="netCode" maxlength="8" placeholder="ルームコード8文字" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 uppercase tracking-widest text-center">
-        <button id="netJoin" class="w-full bg-cyan-600 hover:bg-cyan-500 font-bold py-2 rounded-lg">参加する</button>
+        <button id="netJoin" class="w-full bg-cyan-600 hover:bg-cyan-500 font-bold py-2 rounded-lg">対戦参加（P2・白）</button>
+        <button id="netWatch" class="w-full bg-gray-800 border border-cyan-500/50 text-cyan-200 py-2 rounded-lg">👁 観戦する</button>
       </div>
+      <button id="netReconnect" class="hidden w-full bg-cyan-600 py-2 rounded-lg text-sm">再接続する</button>
       <div id="netStatus" class="text-xs text-pink-300 min-h-[1.25rem]"></div>
       <div class="flex gap-2">
         <button id="netLeave" class="flex-1 bg-gray-700 py-2 rounded-lg text-sm">切断</button>
@@ -3903,11 +4004,17 @@ function endItemTurn(p) {
   $('netHost').onclick = () => { $('netRoom').classList.add('hidden'); $('netStage').classList.remove('hidden'); status('ステージを選んでください'); };
   ui.querySelectorAll('.netStageBtn').forEach(b => { b.onclick = () => hostRoom(b.dataset.stage); });
   $('netStageBack').onclick = () => { $('netStage').classList.add('hidden'); status(''); };
-  $('netJoin').onclick = joinRoom;
+  $('netJoin').onclick = () => joinRoom('guest');
+  $('netWatch').onclick = () => joinRoom('spectator');
+  $('netCpuHost').onclick = () => hostRoom(state.currentStage,'cpu');
+  $('netReconnect').onclick = () => { if(retry)joinRoom(retry.role,retry.code); };
   $('netLeave').onclick = () => { leave(); status('切断しました'); };
   $('netCopy').onclick = () => copy(location.origin + location.pathname + '?room=' + $('netRoomCode').textContent);
+  $('netWatchCopy').onclick = () => copy(location.origin + location.pathname + '?room=' + $('netRoomCode').textContent + '&watch=1');
   const q = new URLSearchParams(location.search).get('room');
-  if (q) { $('netCode').value = q; $('netPanel').classList.remove('hidden'); }
+  if (q) { $('netCode').value = q; $('netPanel').classList.remove('hidden');
+    if(new URLSearchParams(location.search).get('watch')==='1')status('観戦リンクです。「観戦する」を押してください');
+  }
 })();
 
 // ============================================================
@@ -6807,7 +6914,7 @@ let achG = { skills: 0, maxMult: 1, ended: false, vanish: 0, inmu: 0 };
 let achShown = false;
 // 実績の対象になる対局か
 function achOK(turn) {
-    return turn === BLACK && state.gameMode === 'vsCpu' && !state.isTestMode && !(window.getNetRole && window.getNetRole());
+    return turn === BLACK && state.gameMode === 'vsCpu' && !state.isTestMode && (!window.getNetRole || !window.getNetRole() || window.getNetRole()==='cpu-host');
 }
 const achToastQueue = [];
 let achToastBusy = false;
@@ -7060,13 +7167,18 @@ achRefresh();
         const role = window.getNetRole ? window.getNetRole() : null;
         const me = myView();
         let black, white;
-        if (role === 'host') { black = me; white = OPP; }
+        if (role === 'spectator') { const views=window.getSpectatorViews?.();black=views?.black||null;white=views?.white||null; }
+        else if (role === 'host') { black = me; white = OPP; }
         else if (role === 'guest') { black = OPP; white = me; }
         else { black = me; white = null; }
         const vs2p = (typeof state.gameMode !== 'undefined') && state.gameMode === 'vs2p';
         setCard('p1', $('p1Label'), $('p1Title'), $('p1Avatar'), black, 'PLAYER 1 (黒)', 'P1', '黒');
         setCard('cpu', $('cpuLabel'), $('cpuTitle'), $('cpuAvatar'), white, vs2p ? 'PLAYER 2 (白)' : 'CPU (白)', vs2p ? 'P2' : 'CPU', '白');
     }
+    window.profBroadcastViews = () => ({black:myView(),white:OPP || (state.gameMode==='vsCpu' ? {
+        name:'CPU · '+(document.getElementById('aiLevelSelect').selectedOptions[0]?.textContent || ''),
+        icon:'CPU',color:'',titleText:'',stars:0
+    } : null)});
     window.pfRenderCards = renderCards;
 
     // ---- モーダル ----
