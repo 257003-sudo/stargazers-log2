@@ -1073,7 +1073,7 @@ SOFTWARE.
     </footer>
 
 <!-- ===== ONLINE (PeerJS / ルームコード対戦) ===== -->
-<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
 <style>
 /* ===== body CSS 1/8 ===== */
@@ -3672,7 +3672,58 @@ function endItemTurn(p) {
   const O = { render: renderBoard, skillUI: updateSkillUI, setMsg: setMessage, click: handleCellClick,
     select: selectSkill, init: initGame, reset: resetGame, over: checkGameOver, sound: playSound,
     cutin: triggerSkillCutin, scores: updateScores, badge: updateTurnBadge };
-  const safeSend = (c,m) => { try { if (c && c.open) c.send(m); } catch(e) { __swallow(e); } };
+  const diagnosticLog=[];
+  function diagnostic(stage,e) {
+    const row={time:new Date().toISOString(),stage,type:String(e?.type||e?.name||'info'),message:String(e?.message||e||''),stack:String(e?.stack||'').slice(0,2000)};
+    diagnosticLog.push(row);if(diagnosticLog.length>60)diagnosticLog.shift();
+    if($('netDiagnostics'))$('netDiagnostics').textContent=diagnosticLog.map(x=>`${x.time} [${x.stage}/${x.type}] ${x.message}`).join('\n');
+    console.info('[NEO network]',row);
+  }
+  function explainError(e) {
+    const type=e?.type||e?.name||'unknown';
+    const hints={network:'接続サーバーへの通信に失敗しました',server:'接続サーバーでエラーが発生しました',
+      'socket-error':'接続サーバーとの通信に失敗しました','socket-closed':'接続サーバーとの接続が閉じました',
+      'peer-unavailable':'指定した部屋が見つかりません','browser-incompatible':'このブラウザーではWebRTCを利用できません',
+      'ssl-unavailable':'安全な接続を確立できません','webrtc':'端末間のWebRTC接続に失敗しました。回線やブラウザーの制限が候補です'};
+    return (hints[type]||'通信処理でエラーが発生しました')+` [${type}] `+String(e?.message||'');
+  }
+  function reportFailure(stage,e) {
+    diagnostic(stage,e);status(explainError(e));
+    $('netPanel').classList.remove('hidden');$('netDiagnosticDetails').open=true;
+  }
+  function preflight() {
+    if(typeof Peer!=='function'){reportFailure('preflight',{type:'library-load',message:'PeerJSが読み込まれていません。CDNへの接続やコンテンツブロックを確認してください。'});return false;}
+    if(typeof RTCPeerConnection!=='function'){reportFailure('preflight',{type:'browser-incompatible',message:'RTCPeerConnectionが利用できません。HTTPSで通常のブラウザーから開いてください。'});return false;}
+    return true;
+  }
+  function networkAudio(){try{initAudio();}catch(e){diagnostic('audio-init',e);}}
+  function createPeer(id,epoch){
+    try {
+      diagnostic('peer-create',{type:'info',message:'PeerJS初期化 / secureContext='+window.isSecureContext});
+      const p=id?new Peer(id):new Peer();
+      p.on('disconnected',()=>{if(epoch!==generation)return;diagnostic('signaling-disconnected','接続サーバーから切断');
+        status('接続サーバーとの接続が切れました。既存の端末間通信は別に確認しています。');
+        if(!p.destroyed&&p.disconnected)try{p.reconnect();}catch(e){reportFailure('signaling-reconnect',e);}
+      });
+      return p;
+    }catch(e){leave();reportFailure('peer-constructor',e);return null;}
+  }
+  function watchConnection(c){
+    const pc=c.peerConnection;
+    if(pc?.addEventListener){
+      for(const name of ['iceconnectionstatechange','connectionstatechange'])pc.addEventListener(name,()=>diagnostic(name,{type:'rtc-state',message:`ICE=${pc.iceConnectionState}, connection=${pc.connectionState}`}));
+    }
+  }
+  window.addEventListener('error',event=>{
+    if(!event.message)return;
+    diagnostic('window-error',{type:'script-error',message:event.message+' '+(event.filename||'')+':'+event.lineno,stack:event.error?.stack});
+    if(event.message==='Script error.'&&$('netStatus')){
+      status('スクリプトエラーの詳細がブラウザーに隠されています。通信診断を確認してください。');
+      $('netDiagnosticDetails').open=true;
+    }
+  });
+  window.addEventListener('unhandledrejection',event=>diagnostic('unhandled-promise',event.reason));
+  const safeSend = (c,m) => { try { if (c && c.open) c.send(m); } catch(e) { diagnostic('send',e); } };
   function send(m) { if (isHost()) { safeSend(conn,m); viewers.forEach(c=>safeSend(c,m)); } else safeSend(conn,m); }
   window.getNetRole = () => netRole;
   window.getSpectatorViews = () => netRole === 'spectator' ? remoteViews : null;
@@ -3859,6 +3910,7 @@ function endItemTurn(p) {
   function reject(c,reason){safeSend(c,{t:'reject',reason});setTimeout(()=>{try{c.close();}catch(e){__swallow(e);}},250);}
   function accept(c,epoch){
     // Metadata determines the role once. Spectator packets never enter the player action handler.
+    watchConnection(c);
     const role=c.metadata?.role;
     const valid=c.metadata?.version===VERSION&&(role==='guest'||role==='spectator');
     let reason='';
@@ -3903,17 +3955,20 @@ function endItemTurn(p) {
       if(conn===c){conn=null;if(window.profSetOpp)window.profSetOpp(null);O.setMsg('対戦相手が退出しました。次の参加で新しい対局を開始します。');}
       banner();sendState();O.render();O.skillUI();lockUI();
     };
-    c.on('close',closed);c.on('error',closed);
+    c.on('close',closed);c.on('error',e=>{reportFailure('incoming-data-channel',e);closed();try{c.close();}catch(x){diagnostic('channel-close',x);}});
   }
   function hostRoom(stage,mode='online'){
-    if(typeof Peer==='undefined')return status('通信ライブラリを読み込めませんでした');
+    if(!preflight())return;
     if(state.isTestMode)return status('テストモードを終了してから部屋を作ってください');
     if(mode==='cpu'&&state.gameMode!=='vsCpu')return status('対戦モードを「1P vs CPU」にしてから配信してください');
     if(mode==='online'&&state.isProcessing&&$('gameModal').classList.contains('hidden'))return status('現在の処理が終わってから部屋を作ってください');
-    stage=STAGES[stage]?stage:'standard';initAudio();leave();hostMode=mode;
-    const epoch=generation,code=rnd(8),p=new Peer(PFX+code);peer=p;
+    stage=STAGES[stage]?stage:'standard';networkAudio();leave();hostMode=mode;
+    const epoch=generation,code=rnd(8),p=createPeer(PFX+code,epoch);if(!p)return;peer=p;
+    status('部屋を作成しています…');
+    const creationTimeout=setTimeout(()=>{if(epoch===generation&&!roomCode){leave();reportFailure('room-open-timeout',{type:'timeout',message:'部屋作成に30秒以上かかりました。接続サーバーとの通信を確認してください。'});}},30000);
     p.on('open',()=>{
       if(epoch!==generation)return;
+      clearTimeout(creationTimeout);diagnostic('room-open','部屋の作成完了');
       roomCode=code;netRole=mode==='cpu'?'cpu-host':'host';
       if(mode==='online'){state.currentStage=$('stageSelect').value=stage;state.gameMode=$('gameModeSelect').value='vs2p';window.initGame();}
       else if(!$('gameModal').classList.contains('hidden')){
@@ -3925,25 +3980,31 @@ function endItemTurn(p) {
       lockHeader(true);banner();O.render();O.skillUI();status(mode==='cpu'?'CPU戦の配信を開始しました':'対戦相手・観戦者の参加を待っています');
     });
     p.on('connection',c=>{if(epoch===generation)accept(c,epoch);else c.close();});
-    p.on('error',e=>{if(epoch!==generation)return;if(e.type==='unavailable-id')hostRoom(stage,mode);else status('接続エラー: '+e.type);});
+    p.on('error',e=>{if(epoch!==generation)return;diagnostic('host-peer-error',e);if(e.type==='unavailable-id'){clearTimeout(creationTimeout);hostRoom(stage,mode);}else{if(!roomCode){clearTimeout(creationTimeout);leave();}reportFailure('host-peer-error',e);}});
   }
   function joinRoom(role='guest',specifiedCode){
-    if(typeof Peer==='undefined')return status('通信ライブラリを読み込めませんでした');
+    if(!preflight())return;
     const code=(specifiedCode||$('netCode').value).toUpperCase().replace(/[^A-Z0-9]/g,'');
     if(code.length!==8)return status('ルームコードは8文字です');
     if(!isRemote()&&state.isProcessing&&$('gameModal').classList.contains('hidden'))return status('現在の処理が終わってから参加してください');
-    initAudio();if(state.isTestMode)exitTestMode();leave();retry={role,code};
+    networkAudio();if(state.isTestMode)exitTestMode();leave();retry={role,code};
     netRole=role;lockHeader(true);lockUI();status('接続中…');
-    const epoch=generation,p=new Peer();peer=p;
+    const epoch=generation,p=createPeer(null,epoch);if(!p)return;peer=p;
+    const connectionTimeout=setTimeout(()=>{if(epoch===generation&&receivedSequence<0)disconnectRemote('接続が完了しませんでした。通信診断・ルームコード・アプリの版を確認してください。');},30000);
     p.on('open',()=>{
       if(epoch!==generation)return;
-      const c=p.connect(PFX+code,{serialization:'json',metadata:{role,version:VERSION}});conn=c;lastSeen=Date.now();
+      let c;try{c=p.connect(PFX+code,{serialization:'json',metadata:{role,version:VERSION}});}catch(e){clearTimeout(connectionTimeout);disconnectRemote(explainError(e));reportFailure('peer-connect',e);return;}
+      conn=c;lastSeen=Date.now();watchConnection(c);
+      c.on('open',()=>diagnostic('data-channel-open','端末間の接続完了'));
       c.on('data',m=>{if(epoch===generation&&conn===c)receive(m);});
       c.on('close',()=>{if(epoch===generation&&conn===c)disconnectRemote('接続が切れました。再接続できます。部屋主の終了時は観戦を再開できません。');});
-      c.on('error',()=>{if(epoch===generation&&conn===c)disconnectRemote('通信エラーです。再接続してください。');});
-      setTimeout(()=>{if(epoch===generation&&conn&&receivedSequence<0)disconnectRemote('つながりませんでした。コード・参加枠・アプリの版を確認してください。');},12000);
+      c.on('error',e=>{if(epoch===generation&&conn===c){disconnectRemote(explainError(e));reportFailure('outgoing-data-channel',e);}});
+      c.on('data',m=>{if(epoch===generation&&m?.t==='s')clearTimeout(connectionTimeout);});
     });
-    p.on('error',e=>{if(epoch===generation)disconnectRemote(e.type==='peer-unavailable'?'そのルームコードの部屋は見つかりません':'接続エラー: '+e.type);});
+    p.on('error',e=>{if(epoch!==generation)return;diagnostic('joining-peer-error',e);
+      if(conn?.open&&receivedSequence>=0){reportFailure('signaling-error-session-kept',e);return;}
+      clearTimeout(connectionTimeout);disconnectRemote(explainError(e));reportFailure('joining-peer-error',e);
+    });
   }
   // Periodic full snapshots repair missed visual updates and detect a silent connection loss.
   setInterval(()=>{
@@ -3989,6 +4050,7 @@ function endItemTurn(p) {
         <button id="netWatch" class="w-full bg-gray-800 border border-cyan-500/50 text-cyan-200 py-2 rounded-lg">👁 観戦する</button>
       </div>
       <button id="netReconnect" class="hidden w-full bg-cyan-600 py-2 rounded-lg text-sm">再接続する</button>
+      <details id="netDiagnosticDetails" class="text-xs text-gray-400"><summary>通信診断（エラー詳細）</summary><pre id="netDiagnostics" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:160px;overflow:auto"></pre><button id="netDiagnosticCopy" type="button" class="text-xs underline text-cyan-300">診断内容をコピー</button></details>
       <div id="netStatus" class="text-xs text-pink-300 min-h-[1.25rem]"></div>
       <div class="flex gap-2">
         <button id="netLeave" class="flex-1 bg-gray-700 py-2 rounded-lg text-sm">切断</button>
@@ -4004,6 +4066,7 @@ function endItemTurn(p) {
   $('netHost').onclick = () => { $('netRoom').classList.add('hidden'); $('netStage').classList.remove('hidden'); status('ステージを選んでください'); };
   ui.querySelectorAll('.netStageBtn').forEach(b => { b.onclick = () => hostRoom(b.dataset.stage); });
   $('netStageBack').onclick = () => { $('netStage').classList.add('hidden'); status(''); };
+  $('netDiagnosticCopy').onclick = () => copy(JSON.stringify({build:'spectator-diagnostics-1',secureContext:window.isSecureContext,peerLoaded:typeof Peer==='function',webRTC:typeof RTCPeerConnection==='function',events:diagnosticLog},null,2));
   $('netJoin').onclick = () => joinRoom('guest');
   $('netWatch').onclick = () => joinRoom('spectator');
   $('netCpuHost').onclick = () => hostRoom(state.currentStage,'cpu');
@@ -4011,6 +4074,10 @@ function endItemTurn(p) {
   $('netLeave').onclick = () => { leave(); status('切断しました'); };
   $('netCopy').onclick = () => copy(location.origin + location.pathname + '?room=' + $('netRoomCode').textContent);
   $('netWatchCopy').onclick = () => copy(location.origin + location.pathname + '?room=' + $('netRoomCode').textContent + '&watch=1');
+  ['netHost','netCpuHost','netJoin','netWatch','netReconnect',...Array.from(ui.querySelectorAll('.netStageBtn'),b=>b.id).filter(Boolean)].forEach(id=>{
+    const b=$(id),fn=b.onclick;b.onclick=(...a)=>{try{return fn(...a);}catch(e){reportFailure('button-'+id,e);}};
+  });
+  ui.querySelectorAll('.netStageBtn').forEach(b=>{const fn=b.onclick;b.onclick=(...a)=>{try{return fn(...a);}catch(e){reportFailure('stage-button',e);}};});
   const q = new URLSearchParams(location.search).get('room');
   if (q) { $('netCode').value = q; $('netPanel').classList.remove('hidden');
     if(new URLSearchParams(location.search).get('watch')==='1')status('観戦リンクです。「観戦する」を押してください');
