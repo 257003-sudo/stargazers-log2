@@ -19,7 +19,7 @@
  <div id="bottom"><div class="controls"><div><kbd>W A S D</kbd>移動　<kbd>SPACE</kbd>ジャンプ　<kbd>SHIFT</kbd>疾走</div><div><kbd>左ドラッグ</kbd>斬撃　<kbd>右長押し</kbd>防御　<kbd>ESC</kbd>一時停止</div></div><div class="swordlabel"><span>OBSIDIAN SERIES / 001</span><strong>黒曜の剣</strong><div class="xp"><i id="xpbar"></i></div></div></div>
 </div>
 <div id="damageveil"></div>
-<div id="overlay"><div class="panel"><section><div class="brand">A MEMORY OF SWORDS</div><h1 id="heading">NIGHT<em>EDGE</em></h1><div class="subtitle" id="subheading">剣 の 記 憶</div><p class="intro" id="intro">浮遊する闘技場。手にあるのは、一振りの黒い剣。<br>相手の構えを読み、その一瞬を斬り拓け。<br>4人の剣士を倒し、最上層へ。</p><button class="primary" id="start">闘技場に入る　↗</button><button class="secondary" id="sound">SOUND / ON</button></section><section class="guide"><h3>HOW TO WIELD YOUR SWORD</h3><p><b>01 / 視線を向ける</b>マウスで周囲を見渡す。WASDで間合いを調整。</p><p><b>02 / 振って、斬る</b>マウスで視点と剣の向きを操作。左長押しで斬撃。<br>柄を支点に剣が回転し、刃が通った場所を斬る。</p><p><b>03 / 読んで、受ける</b>右長押しで防御。敵の斬撃と交差する向きに構える。<br>縦斬りは横、横斬りは縦に構える。直前防御でパリィ。</p><p><b>04 / 跳んで、攻める</b>Spaceでジャンプ。敵の攻撃後の隙を狙え。<br>スタミナが切れると攻撃・防御が制限される。</p></section></div><div class="footnote"><span>DESKTOP EXPERIENCE / MOUSE + KEYBOARD</span><span id="locknote">クリックするとマウスを捕捉します · ESCで解除</span></div></div>
+<div id="overlay"><div class="panel"><section><div class="brand">A MEMORY OF SWORDS</div><h1 id="heading">NIGHT<em>EDGE</em></h1><div class="subtitle" id="subheading">剣 の 記 憶</div><p class="intro" id="intro">浮遊する闘技場。手にあるのは、一振りの黒い剣。<br>相手の構えを読み、その一瞬を斬り拓け。<br>4人の剣士を倒し、最上層へ。</p><button class="primary" id="start">闘技場に入る　↗</button><button class="secondary" id="sound">SOUND / ON</button></section><section class="guide"><h3>HOW TO WIELD YOUR SWORD</h3><p><b>01 / 視線を向ける</b>マウスで周囲を見渡す。WASDで間合いを調整。</p><p><b>02 / 振って、斬る</b>マウスで視点と剣の向きを操作。左長押しで斬撃。<br>柄を支点に剣が回転し、刃が通った場所を斬る。</p><p><b>03 / 読んで、受ける</b>右長押しで防御。敵の斬撃と交差する向きに構える。<br>縦斬りは横、横斬りは縦に構える。直前防御でパリィ。</p><p><b>04 / 跳んで、攻める</b>Spaceでジャンプ。敵の攻撃後の隙を狙え。<br>スタミナが切れると攻撃・防御が制限される。</p><div style="border-top:1px solid #80bfc533;padding-top:12px;font-size:11px;color:#acbec9"><label style="display:flex;align-items:center;justify-content:space-between;gap:12px">剣の感度 <input id="swordSensitivity" aria-label="剣の感度" type="range" min="0.6" max="1.6" step="0.1" value="1" style="width:120px;accent-color:#8aefeb"><output id="sensitivityValue">1.0×</output></label><label style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px">剣の重さ <input id="swordWeight" aria-label="剣の重さ" type="range" min="0" max="1" step="0.1" value="0.4" style="width:120px;accent-color:#e9c895"><output id="weightValue">標準</output></label></div></section></div><div class="footnote"><span>DESKTOP EXPERIENCE / MOUSE + KEYBOARD</span><span id="locknote">クリックするとマウスを捕捉します · ESCで解除</span></div></div>
 <script>
 'use strict';
 (()=>{
@@ -62,17 +62,37 @@ const player={x:0,z:8,y:0,vy:0,yaw:0,pitch:0,hp:100,maxHp:100,stamina:100,level:
 const titles=['灰冠の剣士','碧閃の衛士','紅蓮の決闘者','蒼月の剣聖'];
 let enemy=null,particles=[],scars=[],clock=0,wall=0,phase='title',started=false,wave=0,kills=0,shake=0,hitFlash=0,hurt=0,slow=0,parries=0,messageTime=0,nextWave=0,victory=false,muted=false,locked=false,leftHeld=false,dragX=0,dragY=0,dragDist=0,dragTime=0;const keys=new Set();
 const hitFeedback={stop:0,life:0,duration:.24,power:1,angle:0,damage:0,point:[0,1.4,0]};
+const controls={sensitivity:1,weight:.4};
+try{const saved=JSON.parse(localStorage.getItem('nightedgeControls')||'null');if(saved){if(Number.isFinite(saved.sensitivity))controls.sensitivity=clamp(saved.sensitivity,.6,1.6);if(Number.isFinite(saved.weight))controls.weight=clamp(saved.weight,0,1);}}catch(e){}
+function renderControls(){$('swordSensitivity').value=controls.sensitivity;$('swordWeight').value=controls.weight;$('sensitivityValue').textContent=controls.sensitivity.toFixed(1)+'×';$('weightValue').textContent=controls.weight<.3?'軽め':controls.weight>.7?'重め':'標準';}
+for(const [id,key] of [['swordSensitivity','sensitivity'],['swordWeight','weight']])$(id).addEventListener('input',e=>{controls[key]=Number(e.target.value);renderControls();try{localStorage.setItem('nightedgeControls',JSON.stringify(controls));}catch(e){}});
+renderControls();
 // Wrist orientation is independent of the camera: neither attacks nor guards lock the view.
-const bladeState={targetPitch:-1.08,targetYaw:0,targetRoll:-.22,pitch:-1.08,yaw:0,roll:-.22,vPitch:0,vYaw:0,vRoll:0,guardBlend:0,previous:null,current:null,trail:[],speed:0,cutAngle:0,lastInput:0,lastDX:0,lastDY:0};
-function resetBlade(){Object.assign(bladeState,{targetPitch:-1.08,targetYaw:0,targetRoll:-.22,pitch:-1.08,yaw:0,roll:-.22,vPitch:0,vYaw:0,vRoll:0,guardBlend:0,previous:null,current:null,trail:[],speed:0,cutAngle:0,lastInput:performance.now(),lastDX:0,lastDY:0});}
+const bladeState={frameDX:0,frameDY:0,inputSegments:[],motionPitch:0,motionRoll:0,motionYaw:0,strokeTravel:0,strokeX:0,strokeY:0,strokeArmed:true,inputRestart:true,lastStrokeInput:0,lastAttackWall:-1e6,strokeCount:0,lastFrameTime:performance.now(),targetPitch:-1.08,targetYaw:0,targetRoll:-.22,pitch:-1.08,yaw:0,roll:-.22,vPitch:0,vYaw:0,vRoll:0,guardBlend:0,previous:null,current:null,trail:[],speed:0,cutAngle:0,lastInput:0,lastDX:0,lastDY:0};
+function resetBlade(){Object.assign(bladeState,{frameDX:0,frameDY:0,inputSegments:[],motionPitch:0,motionRoll:0,motionYaw:0,strokeTravel:0,strokeX:0,strokeY:0,strokeArmed:true,inputRestart:true,lastStrokeInput:0,lastAttackWall:-1e6,strokeCount:0,lastFrameTime:performance.now(),targetPitch:-1.08,targetYaw:0,targetRoll:-.22,pitch:-1.08,yaw:0,roll:-.22,vPitch:0,vYaw:0,vRoll:0,guardBlend:0,previous:null,current:null,trail:[],speed:0,cutAngle:0,lastInput:performance.now(),lastDX:0,lastDY:0});}
 function cameraLocal(p){const cy=Math.cos(player.yaw),sy=Math.sin(player.yaw),cp=Math.cos(player.pitch),sp=Math.sin(player.pitch),[x,y,z]=p;return[player.x+cy*x+sy*sp*y+sy*cp*z,1.72+player.y+cp*y-sp*z,player.z-sy*x+cy*sp*y+cy*cp*z];}
 function swordPoint(p){const b=bladeState,g=b.guardBlend,grip=[mix(.34,-.06,g),mix(-.36,-.25,g),mix(-.58,-.68,g)];return cameraLocal(transform(p,grip,b.pitch,b.yaw,b.roll));}
 function bladePoints(){return{base:swordPoint([0,.2,0]),tip:swordPoint([0,2.25,0])};}
 function projectPoint(p){let m=camera([player.x,1.72+player.y,player.z],player.yaw,player.pitch),w=m[3]*p[0]+m[7]*p[1]+m[11]*p[2]+m[15];if(w<=.01)return null;return{x:((m[0]*p[0]+m[4]*p[1]+m[8]*p[2]+m[12])/w*.5+.5)*W,y:(.5-(m[1]*p[0]+m[5]*p[1]+m[9]*p[2]+m[13])/w*.5)*H};}
 function updateBlade(dt){
- const b=bladeState;if(!leftHeld&&!player.guard&&performance.now()-b.lastInput>1100){const t=1-Math.exp(-dt*.8);b.targetPitch=mix(b.targetPitch,-1.08,t);b.targetRoll=mix(b.targetRoll,-.22,t);b.targetYaw=mix(b.targetYaw,0,t);}
- b.previous=b.current||bladePoints();const steps=Math.max(1,Math.ceil(dt/.008)),h=dt/steps;
- for(let i=0;i<steps;i++){for(const [axis,velocity,target] of [['pitch','vPitch','targetPitch'],['yaw','vYaw','targetYaw'],['roll','vRoll','targetRoll']]){b[velocity]+=((b[target]-b[axis])*170-b[velocity]*22)*h;b[axis]+=b[velocity]*h;}b.guardBlend=mix(b.guardBlend,player.guard?1:0,1-Math.exp(-h*16));}
+ const b=bladeState,now=performance.now(),frameTime=clamp((now-b.lastFrameTime)/1000,.001,.12);b.lastFrameTime=now;
+ const dx=b.frameDX,dy=b.frameDY;b.frameDX=b.frameDY=0;const distance=Math.hypot(dx,dy),speed=distance/frameTime;
+ const inputRoll=clamp(-dx*.008*controls.sensitivity/frameTime,-18,18),inputPitch=clamp(-dy*.006*controls.sensitivity/frameTime,-14,14),inputYaw=clamp(dx*.002*controls.sensitivity/frameTime,-6,6),filter=1-Math.exp(-frameTime*38);
+ b.motionRoll=mix(b.motionRoll,inputRoll,filter);b.motionPitch=mix(b.motionPitch,inputPitch,filter);b.motionYaw=mix(b.motionYaw,inputYaw,filter);
+ for(const segment of b.inputSegments.splice(0)){
+  const dx=segment.dx,dy=segment.dy,distance=Math.hypot(dx,dy),speed=distance/Math.max(.001,segment.duration);
+  const dot=(dx*b.strokeX+dy*b.strokeY)/(distance*Math.hypot(b.strokeX,b.strokeY)||1),fresh=b.inputRestart||segment.restart,reversed=dot<-.32;b.inputRestart=false;
+  if(fresh||reversed){b.strokeArmed=true;b.strokeTravel=0;}
+  if(speed>160)b.strokeTravel+=distance;else b.strokeTravel=Math.max(0,b.strokeTravel-frameTime*160);
+  b.strokeX=dx;b.strokeY=dy;b.lastStrokeInput=now;
+  if(leftHeld&&!player.guard&&b.strokeArmed&&b.strokeTravel>=22&&speed>240&&attack(dx>=0?1:-1,Math.atan2(dy,dx))){b.strokeArmed=false;b.strokeTravel=0;}
+ }
+ if(!leftHeld&&!player.guard&&now-b.lastInput>1100){const t=1-Math.exp(-dt*.8);b.targetPitch=mix(b.targetPitch,-1.08,t);b.targetRoll=mix(b.targetRoll,-.22,t);b.targetYaw=mix(b.targetYaw,0,t);}
+ b.previous=b.current||bladePoints();const steps=Math.max(1,Math.ceil(dt/.005)),h=dt/steps,activity=clamp(Math.hypot(b.motionRoll,b.motionPitch)/8,0,1),stiffness=600-300*controls.weight+120*activity,damping=2*Math.sqrt(stiffness)*(1+controls.weight*.12),prediction=.018*(1-controls.weight);
+ for(let i=0;i<steps;i++){
+  for(const [axis,velocity,target,motion] of [['pitch','vPitch','targetPitch','motionPitch'],['yaw','vYaw','targetYaw','motionYaw'],['roll','vRoll','targetRoll','motionRoll']]){const desired=b[target]+clamp(b[motion]*prediction,-.09,.09);b[velocity]+=((desired-b[axis])*stiffness-b[velocity]*damping)*h;b[axis]+=b[velocity]*h;}
+  b.guardBlend=mix(b.guardBlend,player.guard?1:0,1-Math.exp(-h*24));
+ }
  b.current=bladePoints();b.speed=Math.hypot(...b.current.tip.map((v,i)=>v-b.previous.tip[i]))/Math.max(dt,.001);
  const a=projectPoint(b.previous.tip),c=projectPoint(b.current.tip);if(a&&c&&Math.hypot(c.x-a.x,c.y-a.y)>1)b.cutAngle=Math.atan2(c.y-a.y,c.x-a.x);
  if(b.speed>1.3&&player.swing>0&&!player.guard)b.trail.push({base:[...b.current.base],tip:[...b.current.tip],life:.16});
@@ -116,7 +136,7 @@ function registerImpact(damage){
 }
 function reset(){hitFeedback.stop=hitFeedback.life=0;resetBlade();Object.assign(player,{x:0,z:8,y:0,vy:0,yaw:0,pitch:0,hp:100,maxHp:100,stamina:100,level:1,xp:0,guard:false,swing:0,cooldown:0,combo:0,comboTime:0});particles=[];scars=[];wave=0;kills=0;parries=0;victory=false;nextWave=0;hurt=0;spawn();}
 function showOverlay(title,subtitle,intro,button){$('heading').textContent=title;$('subheading').textContent=subtitle;$('intro').textContent=intro;$('start').textContent=button;$('overlay').classList.remove('hidden');}
-function pause(){if(phase!=='playing')return;phase='paused';keys.clear();leftHeld=false;player.guard=false;showOverlay('PAUSED','刃 を 休 め る','マウスの捕捉を解除しました。準備ができたら、再び闘技場へ。','戦いを再開する　↗');}
+function pause(){if(phase!=='playing')return;phase='paused';keys.clear();leftHeld=false;player.guard=false;bladeState.frameDX=bladeState.frameDY=0;bladeState.inputSegments=[];bladeState.motionPitch=bladeState.motionRoll=bladeState.motionYaw=0;showOverlay('PAUSED','刃 を 休 め る','マウスの捕捉を解除しました。準備ができたら、再び闘技場へ。','戦いを再開する　↗');}
 function finish(win){phase=win?'victory':'defeat';victory=win;if(document.pointerLockElement===canvas)document.exitPointerLock();showOverlay(win?'AREA CLEAR':'YOU FELL',win?'剣 の 記 憶 を 刻 ん だ':'も う 一 度 、 構 え ろ',win?`4人の剣士を撃破。到達レベル ${player.level} / パリィ ${parries}回。黒曜の剣は、あなたの一撃を覚えている。`:'間合いを取り、敵が赤く構える瞬間を見よう。右ボタンで攻撃を受け、敵の振り終わりを狙おう。','最初から挑戦する　↗');}
 $('start').onclick=()=>{if(W<800||!matchMedia('(pointer:fine)').matches){$('locknote').textContent='PCのマウス・キーボードで操作してください';}try{let result=canvas.requestPointerLock();if(result?.catch)result.catch(()=>{$('locknote').textContent='マウス捕捉を許可してください。プレビューではなく通常タブから開くと動作しやすくなります。';});}catch(e){$('locknote').textContent='この画面ではマウス捕捉が制限されています。保存したHTMLを通常のブラウザーで開いてください。';}};
 document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===canvas;if(locked){if(!started||phase==='victory'||phase==='defeat'){reset();started=true;}phase='playing';$('overlay').classList.add('hidden');tone('start');}else pause();});
@@ -125,20 +145,18 @@ $('sound').onclick=()=>{muted=!muted;$('sound').textContent='SOUND / '+(muted?'O
 addEventListener('blur',()=>{keys.clear();player.guard=false;leftHeld=false;if(locked)document.exitPointerLock();});
 addEventListener('keydown',e=>{if(phase!=='playing')return;if(e.code==='Escape'){pause();if(document.pointerLockElement===canvas)document.exitPointerLock();return;}if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();keys.add(e.code);if(e.code==='Space'&&!e.repeat&&player.y===0){player.vy=7;}});addEventListener('keyup',e=>keys.delete(e.code));
 addEventListener('contextmenu',e=>{if(locked)e.preventDefault();});
-addEventListener('mousedown',e=>{if(!locked||phase!=='playing')return;if(e.button===0){leftHeld=true;dragX=dragY=dragDist=0;dragTime=clock;bladeState.lastInput=performance.now();}if(e.button===2&&!player.guard){player.guard=true;player.guardAt=clock;player.swing=0;player.impact=true;}});
+addEventListener('mousedown',e=>{if(!locked||phase!=='playing')return;if(e.button===0){leftHeld=true;dragX=dragY=dragDist=0;dragTime=clock;bladeState.lastInput=performance.now();bladeState.strokeArmed=true;bladeState.inputRestart=true;bladeState.strokeTravel=0;bladeState.strokeX=bladeState.strokeY=0;bladeState.frameDX=bladeState.frameDY=0;bladeState.inputSegments=[];}if(e.button===2&&!player.guard){player.guard=true;player.guardAt=clock;player.swing=0;player.impact=true;}});
 addEventListener('mouseup',e=>{if(e.button===0)leftHeld=false;if(e.button===2)player.guard=false;});
 addEventListener('mousemove',e=>{
  if(!locked||phase!=='playing')return;
- const dx=clamp(e.movementX,-180,180),dy=clamp(e.movementY,-180,180),b=bladeState;
+ const dx=clamp(e.movementX,-180,180),dy=clamp(e.movementY,-180,180),b=bladeState,s=controls.sensitivity;
  player.yaw-=dx*.0015;player.pitch=clamp(player.pitch-dy*.0015,-1.15,1.15);
- b.targetRoll=clamp(b.targetRoll-dx*.008,-1.42,1.42);b.targetPitch=clamp(b.targetPitch-dy*.006,-1.48,-.22);b.targetYaw=clamp(b.targetYaw+dx*.002,-.48,.48);
- const now=performance.now(),elapsed=clamp((now-b.lastInput)/1000,.008,.12),speed=Math.hypot(dx,dy)/elapsed;b.lastInput=now;
- if(!leftHeld||player.guard){dragX=dragY=0;b.lastDX=dx;b.lastDY=dy;return;}
- if(dx*b.lastDX+dy*b.lastDY<0)dragX=dragY=0;
- dragX+=dx;dragY+=dy;dragDist+=Math.hypot(dx,dy);b.lastDX=dx;b.lastDY=dy;
- if(Math.hypot(dragX,dragY)>28&&speed>220){if(attack(dragX>=0?1:-1,Math.atan2(dragY,dragX)))dragX=dragY=0;}
+ b.targetRoll=clamp(b.targetRoll-dx*.008*s,-1.42,1.42);b.targetPitch=clamp(b.targetPitch-dy*.006*s,-1.48,-.22);b.targetYaw=clamp(b.targetYaw+dx*.002*s,-.48,.48);
+ const now=performance.now(),elapsed=clamp((now-b.lastInput)/1000,.0005,.12),restart=now-b.lastInput>140,last=b.inputSegments[b.inputSegments.length-1];
+ if(last&&!restart&&(dx*last.dx+dy*last.dy)>0){last.dx+=dx;last.dy+=dy;last.duration+=elapsed;}else{b.inputSegments.push({dx,dy,duration:elapsed,restart});if(b.inputSegments.length>24)b.inputSegments.shift();}
+ b.frameDX+=dx;b.frameDY+=dy;b.lastInput=now;
 });
-function attack(dir,angle){if(phase!=='playing'||player.cooldown>0||player.stamina<17||player.guard)return false;player.stamina-=17;player.swing=.28;player.cooldown=.29;player.swingDir=dir;player.swingAngle=angle;player.impact=false;tone('swing');return true;}
+function attack(dir,angle){const now=performance.now();if(phase!=='playing'||now-bladeState.lastAttackWall<105||player.stamina<17||player.guard)return false;player.stamina-=17;player.swing=.28;player.cooldown=.18;player.swingDir=dir;player.swingAngle=angle;player.impact=false;bladeState.lastAttackWall=now;bladeState.strokeCount++;tone('swing');return true;}
 function burst(x,y,z,color,n=22,force=4){for(let i=0;i<n;i++)particles.push({x,y,z,vx:rand(-force,force),vy:rand(0,force),vz:rand(-force,force),life:rand(.3,.8),max:.8,color,size:rand(.025,.07)});}
 function slashHit(){if(!enemy||enemy.hp<=0)return;let dx=enemy.x-player.x,dz=enemy.z-player.z,dist=len(dx,dz),dot=(-Math.sin(player.yaw)*dx-Math.cos(player.yaw)*dz)/(dist||1);if(dist>3.65||dot<.25||player.y>1.6)return;
 if(enemy.mode==='guard'&&enemy.stun<=0&&crosses(enemy.guardAngle,bladeState.cutAngle)){burst(enemy.x,1.5,enemy.z,[.8,.85,1],15);shake=.05;tone('parry');message('GUARD','相手の攻撃後を狙おう',.65);return;}
@@ -146,11 +164,11 @@ let damage=22+player.level*3+(enemy.mode==='recover'||enemy.stun>0?9:0);enemy.hp
 if(enemy.hp<=0){enemy.mode='dead';enemy.t=0;kills++;player.xp+=100+wave*30;player.level++;player.maxHp+=12;player.hp=Math.min(player.maxHp,player.hp+35);player.stamina=100;nextWave=2.8;burst(enemy.x,1.5,enemy.z,[.35,.95,.92],80,6);message('SWORDSMAN DEFEATED',`LEVEL UP · LV. 0${player.level}`,2.3);tone('start');}}
 function enemyStrike(){let dx=enemy.x-player.x,dz=enemy.z-player.z,d=len(dx,dz);if(d>3.15||player.y>.85)return;let facing=(Math.sin(enemy.yaw)*dx+Math.cos(enemy.yaw)*dz)/(d||1);if(facing<.2)return;let front=(-Math.sin(player.yaw)*dx-Math.cos(player.yaw)*dz)/(d||1);if(player.guard&&front>.3&&player.stamina>=24&&crosses(swordAxis(),enemy.attackAngle)){if(clock-player.guardAt<.22){parries++;enemy.stun=1.3;enemy.mode='stunned';enemy.t=0;slow=.2;player.stamina=Math.min(100,player.stamina+12);message('PERFECT PARRY','一瞬の隙を、斬り拓け',1);burst(player.x-Math.sin(player.yaw),1.5+player.y,player.z-Math.cos(player.yaw),[.55,1,1],35);tone('parry');}else{player.stamina-=24;shake=.09;tone('parry');message('BLOCK','STAMINA −24',.5);}return;}
 let damage=15+wave*4;player.hp=Math.max(0,player.hp-damage);hurt=.7;shake=.2;player.combo=0;tone('hurt');if(player.hp<=0)finish(false);}
-function tick(dt){clock+=dt;if(messageTime>0)messageTime-=dt;player.cooldown=Math.max(0,player.cooldown-dt);player.comboTime=Math.max(0,player.comboTime-dt);if(player.comboTime===0)player.combo=0;
+function tick(dt,inputDt=dt){clock+=dt;if(messageTime>0)messageTime-=dt;player.cooldown=Math.max(0,player.cooldown-dt);player.comboTime=Math.max(0,player.comboTime-dt);if(player.comboTime===0)player.combo=0;
 player.stamina=Math.min(100,player.stamina+dt*(player.guard?4:player.cooldown>0?5:21));if(player.stamina<1)player.guard=false;
 let forward=(keys.has('KeyW')?1:0)-(keys.has('KeyS')?1:0),side=(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0),moving=Math.hypot(forward,side);if(moving){forward/=moving;side/=moving;let sprint=(keys.has('ShiftLeft')||keys.has('ShiftRight'))&&player.stamina>8&&!player.guard;let speed=player.guard?2.1:sprint?6.3:4.1;if(sprint)player.stamina=Math.max(0,player.stamina-30*dt);player.x+=(-Math.sin(player.yaw)*forward+Math.cos(player.yaw)*side)*speed*dt;player.z+=(-Math.cos(player.yaw)*forward-Math.sin(player.yaw)*side)*speed*dt;}
 let radius=len(player.x,player.z);if(radius>20.6){player.x*=20.6/radius;player.z*=20.6/radius;}player.vy-=19*dt;player.y+=player.vy*dt;if(player.y<=0){player.y=0;player.vy=0;}
-updateBlade(dt);if(player.swing>0){player.swing=Math.max(0,player.swing-dt);if(!player.guard&&!player.impact&&bladeState.speed>1.3&&swordTouchesEnemy()){player.impact=true;slashHit();}}
+updateBlade(inputDt);if(player.swing>0){player.swing=Math.max(0,player.swing-dt);if(!player.guard&&!player.impact&&bladeState.speed>1.3&&swordTouchesEnemy()){player.impact=true;slashHit();}}
 if(enemy&&enemy.hp>0){let dx=player.x-enemy.x,dz=player.z-enemy.z,dist=len(dx,dz);enemy.t+=dt;enemy.flash=Math.max(0,enemy.flash-dt);enemy.reaction=Math.max(0,enemy.reaction-dt);enemy.cooldown-=dt;enemy.stun=Math.max(0,enemy.stun-dt);if(enemy.mode!=='swing'&&!(enemy.mode==='windup'&&enemy.t>.38))enemy.yaw=Math.atan2(-dx,-dz);
 if(dist<1.1){let push=(1.1-dist)*.5,nx=dx/(dist||1),nz=dz/(dist||1);player.x+=nx*push;player.z+=nz*push;enemy.x-=nx*push;enemy.z-=nz*push;}
 if(enemy.mode==='stunned'){if(enemy.stun===0){enemy.mode='recover';enemy.t=0;}}
@@ -183,8 +201,8 @@ function drawImpact(){
  ctx.rotate(f.angle);const length=(90+age*140)*size*f.power;ctx.shadowColor='#ffb26c';ctx.shadowBlur=18;ctx.strokeStyle=`rgba(255,182,108,${alpha})`;ctx.lineWidth=(9*(1-age)+1)*size;ctx.beginPath();ctx.moveTo(-length*.55,0);ctx.lineTo(length*.55,0);ctx.stroke();ctx.strokeStyle=`rgba(255,255,241,${alpha})`;ctx.lineWidth=2.2*size;ctx.stroke();ctx.shadowBlur=0;ctx.rotate(-f.angle);ctx.globalCompositeOperation='source-over';
  ctx.globalAlpha=alpha;ctx.font=`600 ${Math.round(20*size)}px Segoe UI,sans-serif`;ctx.textAlign='center';ctx.fillStyle='#fff4d5';ctx.shadowColor='#6f2d12';ctx.shadowBlur=7;ctx.fillText(String(f.damage),48*size,-(36+age*48)*size);ctx.restore();
 }
-let previous=performance.now();function frame(now){requestAnimationFrame(frame);let dt=Math.min((now-previous)/1000,.04);previous=now;wall+=dt;if(phase==='playing'){const stop=hitFeedback.stop>0;hitFeedback.stop=Math.max(0,hitFeedback.stop-dt);hitFeedback.life=Math.max(0,hitFeedback.life-dt);let factor=slow>0?.3:1;slow=Math.max(0,slow-dt);if(!stop)tick(dt*factor);}render();}requestAnimationFrame(frame);
-window.SwordGame={player,blade:bladeState,project:projectPoint,swordAxis,feedback:hitFeedback,get enemy(){return enemy},get phase(){return phase},get wave(){return wave},get kills(){return kills},get parries(){return parries}};
+let previous=performance.now();function frame(now){requestAnimationFrame(frame);let realDt=Math.min((now-previous)/1000,.1),dt=Math.min(realDt,.04);previous=now;wall+=dt;if(phase==='playing'){const stop=hitFeedback.stop>0;hitFeedback.stop=Math.max(0,hitFeedback.stop-realDt);hitFeedback.life=Math.max(0,hitFeedback.life-realDt);let factor=slow>0?.3:1;slow=Math.max(0,slow-dt);if(!stop)tick(dt*factor,Math.min(realDt,.06));}render();}requestAnimationFrame(frame);
+window.SwordGame={player,controls,blade:bladeState,project:projectPoint,swordAxis,feedback:hitFeedback,get enemy(){return enemy},get phase(){return phase},get wave(){return wave},get kills(){return kills},get parries(){return parries}};
 spawn();messageTime=0;
 })();
 </script>
